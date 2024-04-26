@@ -1,0 +1,2 @@
+docker build -t sql_client .
+
