@@ -1,0 +1,20 @@
+services:
+  dev:
+    build: .
+    tty: true
+    volumes:
+      - ./client:/app/client
+      - ./database:/app/database
+      - .vscode-server:/root/.vscode-server
+  mosquitto:
+    image: eclipse-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./broker/mosquitto/config:/mosquitto/config
+  database:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: strong_password
+
+
