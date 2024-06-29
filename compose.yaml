@@ -1,11 +1,4 @@
 services:
-  dev:
-    build: .
-    tty: true
-    volumes:
-      - ./client:/app/client
-      - ./database:/app/database
-      - .vscode-server:/root/.vscode-server
   mosquitto:
     image: eclipse-mosquitto
     ports:
@@ -16,5 +9,14 @@ services:
     image: mysql
     environment:
       MYSQL_ROOT_PASSWORD: strong_password
-
-
+  dev:
+    build: .
+    tty: true
+    volumes:
+      - ./client:/app/client
+      - ./database:/app/database
+      - .vscode-server:/root/.vscode-server
+  grphana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"

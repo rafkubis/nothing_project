@@ -1,47 +1,17 @@
+use mysql::prelude::Queryable;
 use mysql::*;
 extern crate paho_mqtt as mqtt;
 use std::time::Duration;
-use serde::{Deserialize};
-/*
-#[derive(Debug, Deserialize)]
-struct Sensor {
-    #[serde(rename = "type")]
-    sensor_type: String,
-    id: i32,
-    value: i32,
-    trend: i32,
-    state: i32,
-    #[serde(rename = "elapsedTimeS")]
-    elapsed_time_s: i32,
-}
+use chrono;
 
-#[derive(Debug, Deserialize)]
-struct MultiSensor {
-    sensors: Vec<Sensor>,
-}
+pub mod rest;
 
-#[derive(Debug, Deserialize)]
-struct Root {
-    multi_sensor: MultiSensor,
-}*/
 
 fn main() {
-    /*let sql_url = "mysql://root:strong_password@172.18.11.0:3306";
-    let pool = Pool::new(sql_url).unwrap();
-    dbg!(&pool);
-    let mut conn = pool.get_conn().unwrap();
-    dbg!(&conn);
+    let mut conn = open_sql_connection();
+    create_table_if_not_exist(&mut conn);
 
-    conn.query_drop("CREATE DATABASE IF NOT EXISTS test").unwrap();
-    conn.query_drop("USE test").unwrap();
-    // Change to temperature and datetime
-    conn.query_drop("CREATE TABLE IF NOT EXISTS users (temperature float, datetime text)").unwrap();
-
-    conn.query_drop("INSERT INTO users (temperature, datetime) VALUES (23.5, '2022-01-01 10:00:00')").unwrap();
-    conn.query_drop("INSERT INTO users (temperature, datetime) VALUES (24.2, '2022-01-02 11:00:00')").unwrap();
-    conn.query_drop("INSERT INTO users (temperature, datetime) VALUES (22.1, '2022-01-03 12:00:00')").unwrap();*/
-
-    let cli = mqtt::Client::new("tcp://172.17.0.2:1883").unwrap();
+    let cli = mqtt::Client::new("tcp://mosquitto:1883").unwrap();
 
     let conn_opts = mqtt::ConnectOptionsBuilder::new()
         .keep_alive_interval(Duration::from_secs(20))
@@ -61,9 +31,54 @@ fn main() {
     dbg!(sub);
     let receiver = cli.start_consuming();
     dbg!(&receiver);
-    receiver.iter().for_each(|msg| {        
-        println!("Received message: {:?}", msg.expect("AAA").payload_str());
+    receiver.iter().for_each(|msg| match msg {
+        None => println!("None"),
+        Some(value) => {
+            let parsed = serde_json::from_str::<rest::rest::Root>(value.payload_str().as_ref());
+            match parsed {
+                Ok(parsed) => {
+                    println!("Parsed: {:?}", parsed);
+
+                    let mut temperature = (parsed.multiSensor.sensors[0].value / 100) as f32;
+                    temperature += (parsed.multiSensor.sensors[0].value as f32 - temperature*100.0) / 100.0;
+
+                    let date_time = chrono::Local::now();
+                    let formatted_date_time = date_time.format("%Y-%m-%d %H:%M:%S").to_string();
+                    drop_querry(&mut conn, temperature, &formatted_date_time);
+                }
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                }
+            }
+        }
     });
 
     println!("Hello, world!");
+}
+
+fn drop_querry(conn: &mut PooledConn, temperature: f32, datetime: &str) {
+    let temperature_str = temperature.to_string();
+    let mut querry = "INSERT INTO users (temperature, datetime) VALUES (".to_string();
+    querry.push_str(&temperature_str);
+    querry.push_str(", '");
+    querry.push_str(datetime);
+    querry.push_str("')");
+    conn.query_drop(querry).unwrap();
+}
+
+fn create_table_if_not_exist(conn: &mut PooledConn) {
+    conn.query_drop("CREATE DATABASE IF NOT EXISTS test")
+        .unwrap();
+    conn.query_drop("USE test").unwrap();
+    conn.query_drop("CREATE TABLE IF NOT EXISTS users (temperature FLOAT, datetime DATETIME)")
+        .unwrap();
+}
+
+fn open_sql_connection() -> PooledConn {
+    let sql_url = "mysql://root:strong_password@database:3306";
+    let pool = Pool::new(sql_url).unwrap();
+    dbg!(&pool);
+    let conn = pool.get_conn().unwrap();
+    dbg!(&conn);
+    conn
 }
