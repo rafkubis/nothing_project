@@ -20,7 +20,10 @@ fn main() {
             .target(Target::Pipe(file))
             .init();
     } else {
-        Builder::from_default_env().target(Target::Stdout).init(); 
+        Builder::from_default_env()
+            .target(Target::Stdout)
+            .filter_level(log::LevelFilter::Debug)
+            .init();
     }
 
     log::info!("Starting application");
