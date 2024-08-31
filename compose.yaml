@@ -15,8 +15,20 @@ services:
     volumes:
       - ./client:/app/client
       - ./database:/app/database
+      - ./run:/app/run
       - .vscode-server:/root/.vscode-server
   grphana:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    volumes:
+      - grafanadata:/var/lib/grafana
+  json-server:
+    image: clue/json-server
+    tty: true
+    ports:
+      - "80:80"
+    volumes:
+      - ./json-server/data:/data
+volumes:
+  grafanadata:
