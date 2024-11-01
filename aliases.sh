@@ -9,3 +9,7 @@ alias gitau="git add -u"
 alias gitc='git commit'
 alias gitca='git commit --amend'
 alias gitcan='git commit --amend --no-edit'
+
+ips() {
+    docker inspect -f '{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -q)
+}

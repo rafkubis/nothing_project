@@ -1,14 +1,15 @@
 extern crate paho_mqtt as mqtt;
-use chrono;
+use crate::client::Client;
 use env_logger::{Builder, Target};
-use log::info;
-use mqtt::SuccessCallback;
+use futures::{executor::block_on, stream::StreamExt};
+use mqtt::QOS_0;
 use mysql::serde_json;
 use std::env;
 use std::fs::File;
 use std::time::Duration;
 
 use crate::database::*;
+pub mod client;
 pub mod database;
 pub mod rest;
 
@@ -31,54 +32,35 @@ fn main() {
 
     let mut conn = database::open_sql_connection();
     create_table_if_not_exist(&mut conn);
+    if let Err(err) = block_on(async {
+        let handle = &mut |msg| {
+            handle_message(msg, &mut conn);
+        };
+        let mut mqtt_client = client::MqttClient::open(handle).await;
+        mqtt_client.receive().await;
 
-    let cli = connect_and_publish_message();
-    let token= cli.subscribe("test/topic", mqtt::QOS_1);
-    cli.set_message_callback(|cli, msg| {
-        log::info!("message callback");
-    });
-    while true{
-
-    }
-
-
+        Ok::<(), mqtt::Error>(())
+    }) {
+        log::error!("{err}");
+    };
 
     println!("Hello, world!");
 }
 
-fn connect_and_publish_message() -> mqtt::AsyncClient {
-    let cli = mqtt::AsyncClient::new("tcp://mosquitto:1883").unwrap();
+fn handle_message(msg: mqtt::Message, conn: &mut mysql::PooledConn) {
+    let parsed = serde_json::from_str::<rest::Root>(msg.payload_str().as_ref());
+    match parsed {
+        Ok(parsed) => {
+            log::info!("Parsed: {:?}", parsed);
 
-    let lwt = mqtt::Message::new(
-        "test/lwt",
-        "[LWT] Async subscriber v5 lost connection",
-        mqtt::QOS_1,
-    );
-
-    let conn_opts = mqtt::ConnectOptionsBuilder::new()
-        .keep_alive_interval(Duration::from_secs(20))
-        .clean_session(true)
-        .will_message(lwt)
-        .finalize();
-
-    cli.connect_with_callbacks(
-        conn_opts,
-        |cli, result| {
-            log::info!("Success callback {result}");
-        },
-        |cli, result, reslut2| {
-            log::info!("Failure callback {result}, {reslut2}");
-        },
-    );
-
-
-
-    /*    let msg = mqtt::Message::new("test", "Hello world!", 0);
-        if let Err(e2) = cli.publish(msg) {
-            log::debug!("Unable to publish message:\n\t{:?}", e2);
+            let temperature = calculate_temperature(parsed);
+            let formatted_date_time = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+            drop_querry(conn, temperature, &formatted_date_time);
         }
-    */
-    cli
+        Err(..) => {
+            log::error!("Error parsing message: {:?}", msg.payload_str());
+        }
+    }
 }
 
 fn calculate_temperature(parsed: rest::Root) -> f32 {
