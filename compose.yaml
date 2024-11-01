@@ -5,24 +5,29 @@ services:
       - "1883:1883"
     volumes:
       - ./broker/mosquitto/config:/mosquitto/config
+
   database:
     image: mysql
     environment:
       MYSQL_ROOT_PASSWORD: strong_password
+
   dev:
     build: .
     tty: true
+    environment:
+      - HISTFILE=/root/.bash_history
     volumes:
-      - ./client:/app/client
-      - ./database:/app/database
-      - ./run:/app/run
+      - .:/app/
       - .vscode-server:/root/.vscode-server
+      - ./.bash_history:/root/.bash_history
+
   grphana:
     image: grafana/grafana
     ports:
       - "3000:3000"
     volumes:
       - grafanadata:/var/lib/grafana
+
   json-server:
     image: clue/json-server
     tty: true

@@ -16,6 +16,18 @@ def on_connect(client, userdata, flags, reason_code, properties):
 def on_message(client, userdata, msg):
     logger.info(msg.topic+" "+str(msg.payload))
 
+def on_disconnect(client, userdata, rc, arg, arg2):
+    logger.info(f"Disconnected with result code {rc}")
+    while True:
+        time.sleep(1)
+        try:
+            client.reconnect()
+            break
+        except Exception as e:
+            logger.error(f"An exception occurred: {e}")
+
+
+
 def findTempSensorIp(maxIp=255):
     result = []
     for i in range(maxIp):
@@ -27,7 +39,7 @@ def findTempSensorIp(maxIp=255):
                 logger.debug(f"Sensor IP found: {rest_url}")
                 result.append(rest_url)
             else:
-                logger.info(f"{rest_url} Error: {resp.reason}")
+                logger.debug(f"{rest_url} Error: {resp.reason}")
         except Exception as e:
             logger.debug((f"An exception occurred: {e}"))
     return result
@@ -61,8 +73,8 @@ def set_logger(args):
         logging.basicConfig(level=log_level, datefmt="%Y-%m-%d %H:%M:%S", format=format)
 
 def main(*args):
-    parsed_args = parse_args(args)
-    set_logger(parsed_args)
+    app_config = parse_args(args)
+    set_logger(app_config)
     
     rest_thread = threading.Thread(target=rest)
     rest_thread.start()
@@ -72,7 +84,11 @@ def main(*args):
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
     client.on_message = on_message
+    client.on_disconnect = on_disconnect
+    client.on_socket_close = lambda client, userdata, rc: logger.info(f"Socket closed with result code {rc}")
     client.connect(broker_url, 1883, 60)
+    client.loop_start() 
+
 
     while 1:
         urls = rest_urls.get_urls()
