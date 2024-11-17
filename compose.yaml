@@ -4,12 +4,16 @@ services:
     ports:
       - "1883:1883"
     volumes:
-      - ./broker/mosquitto/config:/mosquitto/config
+      - ${HOST_PROJECT_PWD}/broker/mosquitto/config:/mosquitto/config
+    networks:
+      - network1
 
   database:
     image: mysql
     environment:
       MYSQL_ROOT_PASSWORD: strong_password
+    networks:
+      - network1
 
   dev:
     build: .
@@ -20,6 +24,8 @@ services:
       - .:/app/
       - .vscode-server:/root/.vscode-server
       - ./.bash_history:/root/.bash_history
+      - ./.bashrc:/root/.bashrc
+      - /var/run/docker.sock:/var/run/docker.sock
 
   grphana:
     image: grafana/grafana
@@ -37,3 +43,8 @@ services:
       - ./json-server/data:/data
 volumes:
   grafanadata:
+
+networks:
+  network1:
+    external: true
+    name: mosquitto_default

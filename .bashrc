@@ -92,7 +92,6 @@ alias gitau="git add -u"
 alias gitc='git commit'
 alias gitca='git commit --amend'
 alias gitc='git commit --amend --no-edit'
-
 # Alias definitions.
 # You may want to put all your additions into a separate file like
 # ~/.bash_aliases, instead of adding them here directly.

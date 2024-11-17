@@ -19,5 +19,6 @@ pub struct MultiSensor {
 
 #[derive(Debug, Deserialize)]
 pub struct Root {
-    pub multiSensor: MultiSensor,
+    #[serde(rename = "multiSensor")]
+    pub multi_sensor: MultiSensor,
 }

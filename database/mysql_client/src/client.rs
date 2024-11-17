@@ -1,24 +1,31 @@
-use futures::{channel::mpsc::Receiver, executor::block_on, stream::StreamExt};
+pub use crate::message_handler;
+use futures::stream::StreamExt;
 use mqtt::Message;
 use paho_mqtt;
 use std::time::Duration;
 
-pub trait Client<'a> {
-    async fn open(callback: &'a mut dyn FnMut(paho_mqtt::Message)) -> Self;
-    async fn send();
-    async fn receive(&mut self);
+pub trait Client<Msg> {
+    fn new() -> impl std::future::Future<Output = Self>;
+    fn send(&self) -> impl std::future::Future<Output = ()> + Send + Sync;
+    fn receive(
+        &mut self,
+        handler: impl message_handler::MessageHandler<Msg> + Send + Sync,
+    ) -> impl std::future::Future<Output = ()> + Send + Sync;
 }
 
-pub struct MqttClient<'a> {
+#[derive(Clone)]
+pub struct MqttClient {
     cli: paho_mqtt::AsyncClient,
     conn_opts: paho_mqtt::ConnectOptions,
-    callback: &'a mut dyn FnMut(paho_mqtt::Message),
     stream: paho_mqtt::AsyncReceiver<Option<Message>>,
 }
 
-impl<'a> Client<'a> for MqttClient<'a> {
-    async fn open(callback: &'a mut dyn FnMut(paho_mqtt::Message)) -> Self {
-        let mut cli = paho_mqtt::AsyncClient::new("tcp://mosquitto:1883").unwrap();
+//unsafe impl Send for MqttClient {}
+//unsafe impl Sync for MqttClient {}
+
+impl Client<paho_mqtt::Message> for MqttClient {
+    async fn new() -> Self {
+        let mut cli = paho_mqtt::AsyncClient::new("tcp://mqtt:1883").unwrap();
         let conn_opts = paho_mqtt::ConnectOptionsBuilder::new()
             .keep_alive_interval(Duration::from_secs(20))
             .clean_session(true)
@@ -36,21 +43,29 @@ impl<'a> Client<'a> for MqttClient<'a> {
         MqttClient {
             cli: cli,
             conn_opts: conn_opts,
-            callback: callback,
             stream: stream,
         }
     }
-    async fn send() {}
-    async fn receive(&mut self) {
+
+    async fn send(&self) {
+        log::info!("Sending message");
+        let msg = paho_mqtt::Message::new("test/topic", "Hello, world!", mqtt::QOS_0);
+        self.cli.publish(msg).await.unwrap();
+    }
+
+    async fn receive(
+        &mut self,
+        mut handler: (impl message_handler::MessageHandler<paho_mqtt::Message> + Send + Sync),
+    ) {
         while let Some(msg) = self.stream.next().await {
             log::debug!("Received message: {:?}", msg);
             match msg {
                 Some(msg1) => {
-                    (self.callback)(msg1);
+                    handler.handle_message(msg1, self).await;
                 }
                 None => {
                     log::warn!("No message received");
-                    self.cli.connect(self.conn_opts.clone()).await.unwrap();
+                    let _ = self.cli.connect(self.conn_opts.clone()).await.unwrap();
                 }
             };
         }
