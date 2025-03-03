@@ -20,6 +20,8 @@ services:
     tty: true
     environment:
       - HISTFILE=/root/.bash_history
+    env_file:
+      - .env
     volumes:
       - .:/app/
       - .vscode-server:/root/.vscode-server

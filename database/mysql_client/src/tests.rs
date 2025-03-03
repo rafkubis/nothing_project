@@ -1,39 +1,3 @@
-extern crate paho_mqtt as mqtt;
-
-use testcontainers::core::logs::consumer::LogConsumer;
-use testcontainers::core::Mount;
-use testcontainers::ImageExt;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
-
-use std::borrow::BorrowMut;
-use std::env;
-
-
-use tokio;
-pub mod client;
-pub mod database;
-pub mod logger;
-pub mod message_handler;
-pub mod rest;
-pub mod app;
-
-use tokio_util::sync::CancellationToken;
-
-fn get_log_path() -> Option<String> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() > 1 {
-        let name = env!("CARGO_PKG_NAME");
-        return Some(args[1].to_owned() + "/" + name + ".log");
-    }
-    None
-}
-
-#[tokio::main]
-async fn main() {
-    logger::init_logger(get_log_path());
-    app::app().await;
-}
-/*
 use ::function_name::named;
 use futures::future::BoxFuture;
 use std::cell::RefCell;
@@ -43,6 +7,17 @@ use testcontainers::{
     runners::AsyncRunner,
     GenericImage,
 };
+use std::borrow::BorrowMut;
+use testcontainers::core::Mount;
+use testcontainers::ImageExt;
+use testcontainers::core::logs::consumer::LogConsumer;
+use tokio;
+use tokio::io::AsyncWriteExt;
+
+pub use crate::logger;
+pub use crate::app;
+
+
 
 struct MyLogConsumer {
     file: Arc<tokio::sync::Mutex<RefCell<tokio::fs::File>>>,
@@ -68,25 +43,22 @@ impl LogConsumer for MyLogConsumer {
         })
     }
 }
-*/
-//#[tokio::test]
-mod tests;
-/*#[named]
+
+#[tokio::test]
+#[named]
 async fn test_mqtt() -> Result<(), i32> {
     println!("start : {}", function_name!());
 
     let log_filepath = function_name!().to_owned() + ".log";
     logger::init_logger(Some(log_filepath));
 
-    log::info!("AAQWE");
-
     let mqtt = GenericImage::new("eclipse-mosquitto", "latest")
         .with_mapped_port(1883, 1883.tcp())
         .with_network("mosquitto_default")
         .with_mount(Mount::bind_mount(
-            "/home/raname = env!("CARGO_PKG_NAME");
-        return Some(args[1].to_owned() + "/" + name + ".log");
-    }
+            "/home/rafal/workspace/mosquitto/broker/mosquitto/config",
+            "/mosquitto/config",
+        ))
         .with_container_name("mqtt")
         .start()
         .await
@@ -133,8 +105,7 @@ async fn test_mqtt() -> Result<(), i32> {
 
     let sut = async move {
         let message_handler = message_handler::dummy_mqtt::DummyMqttHandler {};
-
-        tokio::select! {
+LogConsumer
             _ = sut_token.cancelled() => {}
             _ = mqtt_client.receive(message_handler) => {}
             _ = tokio::time::sleep(tokio::time::Duration::from_secs(10)) => {}
@@ -147,4 +118,4 @@ async fn test_mqtt() -> Result<(), i32> {
     log::info!(" after join");*/
 
     Ok(())
-}*/
+}
