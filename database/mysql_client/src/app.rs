@@ -1,12 +1,12 @@
 extern crate paho_mqtt as mqtt;
-use crate::client::Client;
-use std::borrow::BorrowMut;
-use crate::database::*;
-use tokio;
 pub use crate::client;
+use crate::client::Client;
 pub use crate::database;
+use crate::database::*;
 pub use crate::message_handler;
 pub use crate::rest;
+use std::borrow::BorrowMut;
+use tokio;
 
 pub async fn app() {
     log::info!("Starting application");

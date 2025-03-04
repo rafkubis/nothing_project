@@ -217,3 +217,5 @@ cargo test
 docker remove e6fba37f95a77925b00983a10e9e66dd89acacc64557f1a94ffd61bd83c752a0
 cargo test
 exit
+docker ps
+exit

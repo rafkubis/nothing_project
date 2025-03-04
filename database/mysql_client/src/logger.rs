@@ -3,15 +3,6 @@ use env_logger::{Builder, Target};
 use std::fs::File;
 use std::io::Write;
 
-/*fn get_log_path() -> Option<String> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() > 1 {
-        let name = env!("CARGO_PKG_NAME");
-        return Some(args[1].to_owned() + "/" + name + ".log");
-    }
-    None
-}*/
-
 pub fn init_logger(file_path: Option<String>) {
     let format_func = |buf: &mut Formatter, record: &log::Record| {
         writeln!(
