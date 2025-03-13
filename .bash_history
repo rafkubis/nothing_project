@@ -219,3 +219,12 @@ cargo test
 exit
 docker ps
 exit
+ping database
+exit
+pip install testcontainers
+pip install python3-testcontainers
+whereis python
+python --version
+python3 --version
+whereis python3
+exit

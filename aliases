@@ -1,5 +1,7 @@
 #! /bin/bash
 
+alias builddev='docker compose build dev'
+alias startdev='docker compose up -d dev'
 alias attdev='docker exec -it mosquitto-dev-1 bash'
 alias dcud='docker compose up -d'
 alias dcd='docker compose down'

@@ -1,12 +1,11 @@
 pub use crate::message_handler;
 use futures::stream::StreamExt;
-use mqtt::Message;
 use paho_mqtt;
 use std::time::Duration;
 
 pub trait Client<Msg> {
     fn new() -> impl std::future::Future<Output = Self>;
-    fn send(&self) -> impl std::future::Future<Output = ()> + Send + Sync;
+    fn send(&self, str: &str) -> impl std::future::Future<Output = ()> + Send + Sync;
     fn receive(
         &mut self,
         handler: impl message_handler::MessageHandler<Msg> + Send + Sync,
@@ -17,7 +16,7 @@ pub trait Client<Msg> {
 pub struct MqttClient {
     cli: paho_mqtt::AsyncClient,
     conn_opts: paho_mqtt::ConnectOptions,
-    stream: paho_mqtt::AsyncReceiver<Option<Message>>,
+    stream: paho_mqtt::AsyncReceiver<Option<paho_mqtt::Message>>,
 }
 
 //unsafe impl Send for MqttClient {}
@@ -29,6 +28,8 @@ impl Client<paho_mqtt::Message> for MqttClient {
         let conn_opts = paho_mqtt::ConnectOptionsBuilder::new()
             .keep_alive_interval(Duration::from_secs(20))
             .clean_session(true)
+            .user_name("app")
+            .password("test_app")
             .finalize();
 
         let stream = cli.get_stream(10);
@@ -38,7 +39,7 @@ impl Client<paho_mqtt::Message> for MqttClient {
             log::info!("Connect result: {:?}", result);
         }
 
-        cli.subscribe("test/topic", mqtt::QOS_0).await.unwrap();
+        cli.subscribe("test/topic", paho_mqtt::QOS_0).await.unwrap();
 
         MqttClient {
             cli: cli,
@@ -47,9 +48,9 @@ impl Client<paho_mqtt::Message> for MqttClient {
         }
     }
 
-    async fn send(&self) {
-        log::info!("Sending message");
-        let msg = paho_mqtt::Message::new("test/topic", "Hello, world!", mqtt::QOS_0);
+    async fn send(&self, str: &str) {
+        log::info!("Sending message {}", str);
+        let msg = paho_mqtt::Message::new("test/topic", str, paho_mqtt::QOS_0);
         self.cli.publish(msg).await.unwrap();
     }
 

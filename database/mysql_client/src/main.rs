@@ -1,13 +1,5 @@
-extern crate paho_mqtt as mqtt;
-
-use testcontainers::core::logs::consumer::LogConsumer;
-use testcontainers::core::Mount;
-use testcontainers::ImageExt;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
-
-use std::borrow::BorrowMut;
+//extern crate paho_mqtt as mqtt;
 use std::env;
-
 use tokio;
 pub mod app;
 pub mod client;

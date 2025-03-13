@@ -10,7 +10,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 RUN apt-get install -y mysql-client-core-8.0 vim build-essential pkg-config libssl-dev
 RUN apt-get install -y cmake nmap ca-certificates
 
-RUN python3 -m pip install requests paho-mqtt pytest pytest-asyncio mysql-connector-python --break-system-packages
+RUN python3 -m pip install requests paho-mqtt pytest pytest-asyncio mysql-connector-python uniplot testcontainers --break-system-packages
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 #Add docker gpg key

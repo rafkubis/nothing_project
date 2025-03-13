@@ -1,6 +1,6 @@
+#![allow(unused_imports)]
 use ::function_name::named;
 use futures::future::BoxFuture;
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::sync::Arc;
 use testcontainers::core::logs::consumer::LogConsumer;
@@ -14,20 +14,23 @@ use testcontainers::{
 use tokio;
 use tokio::io::AsyncWriteExt;
 
-use crate::app;
-pub use crate::logger;
+use crate::{app, client::Client, client::MqttClient, database, logger};
+use mysql::{prelude::Queryable, Row};
 use std::env;
 
+#[cfg(test)]
 struct MyLogConsumer {
     file: Arc<tokio::sync::Mutex<RefCell<tokio::fs::File>>>,
 }
 
+#[cfg(test)]
 impl MyLogConsumer {
     fn new(file_path: Arc<tokio::sync::Mutex<RefCell<tokio::fs::File>>>) -> Self {
         MyLogConsumer { file: file_path }
     }
 }
 
+#[cfg(test)]
 impl LogConsumer for MyLogConsumer {
     fn accept<'a>(&'a self, record: &'a testcontainers::core::logs::LogFrame) -> BoxFuture<'a, ()> {
         Box::pin(async move {
@@ -35,7 +38,6 @@ impl LogConsumer for MyLogConsumer {
                 .lock()
                 .await
                 .get_mut()
-                .borrow_mut()
                 .write_all(record.bytes())
                 .await
                 .unwrap();
@@ -43,32 +45,33 @@ impl LogConsumer for MyLogConsumer {
     }
 }
 
+#[cfg(test)]
 async fn start_mqtt_container(
     name: &str,
     log_path: String,
 ) -> testcontainers::ContainerAsync<GenericImage> {
+    let host_project_pwd = env::var("HOST_PROJECT_PWD").expect("HOST_PROJECT_PWD not set");
 
     let log_filepath = log_path.to_owned() + "/" + name + ".log";
     let log_mqtt = Arc::new(tokio::sync::Mutex::new(RefCell::new(
         tokio::fs::File::create(log_filepath).await.unwrap(),
     )));
-
+    let ready_msg = "mosquitto version 2.0.20 running";
     let img = GenericImage::new("eclipse-mosquitto", "latest")
+        .with_wait_for(WaitFor::message_on_stdout(ready_msg))
         .with_mapped_port(1883, 1883.tcp())
         .with_network("mosquitto_default")
         .with_mount(Mount::bind_mount(
-            "/home/rafal/workspace/mosquitto/broker/mosquitto/config",
-            "/mosquitto/config",
+            host_project_pwd + "/broker/mosquitto/",
+            "/mosquitto/",
         ))
         .with_container_name(name)
-        .with_log_consumer(MyLogConsumer::new(log_mqtt))
-        .start()
-        .await
-        .unwrap();
+        .with_log_consumer(MyLogConsumer::new(log_mqtt));
 
-    img
+    img.start().await.unwrap()
 }
 
+#[cfg(test)]
 async fn start_mysql_container(
     name: &str,
     log_path: String,
@@ -77,27 +80,22 @@ async fn start_mysql_container(
     let log_sql = Arc::new(tokio::sync::Mutex::new(RefCell::new(
         tokio::fs::File::create(log_filepath).await.unwrap(),
     )));
-
+    let ready_msg = "/usr/sbin/mysqld: ready for connections.";
     let img = GenericImage::new("mysql", "latest")
+        .with_wait_for(WaitFor::message_on_stderr(ready_msg))
         .with_mapped_port(3306, 3306.tcp())
         .with_env_var("MYSQL_ROOT_PASSWORD", "strong_password")
         .with_network("mosquitto_default")
         .with_container_name(name)
-        .with_log_consumer(MyLogConsumer::new(log_sql))
-        .start()
-        .await
-        .unwrap();
+        .with_log_consumer(MyLogConsumer::new(log_sql));
 
-    img
+    img.start().await.unwrap()
 }
 
 #[tokio::test]
 #[named]
-async fn test_mqtt() -> Result<(), i32> {
+async fn test_mqtt() {
     let build_dir = env::var("CARGO_TARGET_DIR").expect("CARGO_TARGET_DIR not set");
-    println!("build_dir : {}", build_dir);
-    println!("start : {}", function_name!());
-
     let path = build_dir.to_owned() + "/integration_test/" + function_name!();
     tokio::fs::DirBuilder::new()
         .recursive(true)
@@ -112,43 +110,39 @@ async fn test_mqtt() -> Result<(), i32> {
         start_mqtt_container("mqtt", path.clone())
     );
 
-    log::info!("Start");
+    tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
 
-    tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
+    let test_case = async {
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        let client = MqttClient::new().await;
+        let message = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
+        client.send(message).await;
+        client.send(message).await;
+        client.send(message).await;
+
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        let mut db_connection = database::open_sql_connection();
+        db_connection.query_drop("USE test").unwrap();
+        let querry: Vec<Row> = db_connection
+            .query::<Row, &str>("select * from users")
+            .unwrap();
+
+        let top: &Row = &querry[0];
+        let value = top.as_ref(0).unwrap().as_sql(true);
+
+        assert_eq!(querry.len(), 3);
+        assert_eq!(value, "'21.37'");
+    };
 
     tokio::select! {
-       _ = app::app() => {}
-       _ = tokio::time::sleep(tokio::time::Duration::from_secs(10)) => { log::error!("Tineout")}
-    }
-    /*let  mqtt_client2 = mqtt_client.clone();
-
-        let token = CancellationToken::new();
-        let sut_token = token.clone();
-
-        log::info!(" start");
-        println!("AAA");
-        let test_case = async move {
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            println!(" test_case");
-            mqtt_client2.send().await;
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            println!("cancel token");
-            token.cancel();
-        };
-
-        let sut = async move {
-            let message_handler = message_handler::dummy_mqtt::DummyMqttHandler {};
-    LogConsumer
-                _ = sut_token.cancelled() => {}
-                _ = mqtt_client.receive(message_handler) => {}
-                _ = tokio::time::sleep(tokio::time::Duration::from_secs(10)) => {}
-            }
-
-            println!(" test_case2 1");
-        };
-
-        tokio::join!(test_case, sut);
-        log::info!(" after join");*/
-
-    Ok(())
+        _ = app::app() => {}
+        _ = tokio::time::sleep(tokio::time::Duration::from_secs(30)) =>
+        {
+            log::error!("Tineout");
+            assert!(false);
+        }
+        _ = test_case => {}
+    };
 }

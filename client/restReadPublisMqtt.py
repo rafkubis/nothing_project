@@ -26,8 +26,6 @@ def on_disconnect(client, userdata, rc, arg, arg2):
         except Exception as e:
             logger.error(f"An exception occurred: {e}")
 
-
-
 def findTempSensorIp(maxIp=255):
     result = []
     for i in range(maxIp):
@@ -79,7 +77,7 @@ def main(*args):
     rest_thread = threading.Thread(target=rest)
     rest_thread.start()
 
-    broker_url = "mosquitto"
+    broker_url = "mqtt"
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
@@ -87,8 +85,7 @@ def main(*args):
     client.on_disconnect = on_disconnect
     client.on_socket_close = lambda client, userdata, rc: logger.info(f"Socket closed with result code {rc}")
     client.connect(broker_url, 1883, 60)
-    client.loop_start() 
-
+    client.loop_start()
 
     while 1:
         urls = rest_urls.get_urls()

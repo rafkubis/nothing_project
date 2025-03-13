@@ -25,7 +25,7 @@ impl MessageHandler<paho_mqtt::Message> for MqttMessageHandler {
     ) {
         log::info!("Received message: {:?}", msg);
         Self::handle_message(msg, &mut self.sql);
-        //_client.send().await;
+       // _client.send().await;
     }
 }
 

@@ -19,7 +19,9 @@ pub fn create_table_if_not_exist(conn: &mut mysql::PooledConn) {
 }
 
 pub fn get_table(conn: &mut mysql::PooledConn) {
-    conn.query_first("select * from users")
+    conn.query_drop("USE test").unwrap();
+    let _r = conn
+        .query_first("select * from users")
         .map(|res: Option<Row>| {
             let r = res.unwrap();
             log::info!("get_table {:?}", r.columns());

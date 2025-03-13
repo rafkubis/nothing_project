@@ -23,7 +23,7 @@ pub async fn app() {
         mqtt_client2.receive(message_handler).await;
     };
 
-    tokio::join!(mqtt_recevier(conn, mqtt_client), task2, tick(60));
+    tokio::join!(task2, mqtt_recevier(conn, mqtt_client),  tick(60));
 }
 
 pub async fn mqtt_recevier(conn: mysql::PooledConn, mut mqtt_client: client::MqttClient) {

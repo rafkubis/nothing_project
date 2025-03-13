@@ -1,10 +1,10 @@
 services:
-  mosquitto:
+  mqtt:
     image: eclipse-mosquitto
     ports:
       - "1883:1883"
     volumes:
-      - ${HOST_PROJECT_PWD}/broker/mosquitto/config:/mosquitto/config
+      - ${HOST_PROJECT_PWD}/broker/mosquitto/:/mosquitto/
     networks:
       - network1
 
