@@ -92,6 +92,14 @@ async fn start_mysql_container(
     img.start().await.unwrap()
 }
 
+#[cfg(test)]
+pub fn open_sql_connection() -> mysql::PooledConn {
+    let sql_url = "mysql://root:strong_password@database:3306";
+    let pool = mysql::Pool::new(sql_url).unwrap();
+    let conn = pool.get_conn().unwrap();
+    conn
+}
+
 #[tokio::test]
 #[named]
 async fn test_mqtt() {
@@ -123,7 +131,7 @@ async fn test_mqtt() {
 
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-        let mut db_connection = database::open_sql_connection();
+        let mut db_connection = open_sql_connection();
         db_connection.query_drop("USE test").unwrap();
         let querry: Vec<Row> = db_connection
             .query::<Row, &str>("select * from users")

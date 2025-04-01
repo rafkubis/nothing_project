@@ -6,13 +6,11 @@ use crate::database::*;
 pub use crate::message_handler;
 pub use crate::rest;
 use std::borrow::BorrowMut;
+use std::sync::Arc;
 use tokio;
 
 pub async fn app() {
     log::info!("Starting application");
-
-    let mut conn = database::open_sql_connection();
-    create_table_if_not_exist(conn.borrow_mut());
     let mqtt_client = client::MqttClient::new().await;
     let mut mqtt_client2 = mqtt_client.clone();
 
@@ -23,11 +21,12 @@ pub async fn app() {
         mqtt_client2.receive(message_handler).await;
     };
 
-    tokio::join!(task2, mqtt_recevier(conn, mqtt_client),  tick(60));
+    tokio::join!(task2, mqtt_recevier(mqtt_client), tick(60));
 }
 
-pub async fn mqtt_recevier(conn: mysql::PooledConn, mut mqtt_client: client::MqttClient) {
+pub async fn mqtt_recevier(mut mqtt_client: client::MqttClient) {
     log::info!("Start MQTT Receiver Task");
+    let conn = Arc::new(tokio::sync::Mutex::new(database::MySqlQuerryDropbale::new()));
     let message_handler = message_handler::mqtt::MqttMessageHandler::new(conn);
     mqtt_client.receive(message_handler).await;
 }

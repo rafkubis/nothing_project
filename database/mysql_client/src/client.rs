@@ -1,14 +1,16 @@
 pub use crate::message_handler;
+use async_trait::async_trait;
 use futures::stream::StreamExt;
+use mockall;
 use paho_mqtt;
 use std::time::Duration;
 
 pub trait Client<Msg> {
     fn new() -> impl std::future::Future<Output = Self>;
     fn send(&self, str: &str) -> impl std::future::Future<Output = ()> + Send + Sync;
-    fn receive(
+    fn receive<T: message_handler::MessageHandler<Msg> + Send + Sync>(
         &mut self,
-        handler: impl message_handler::MessageHandler<Msg> + Send + Sync,
+        handler: T,
     ) -> impl std::future::Future<Output = ()> + Send + Sync;
 }
 
@@ -54,9 +56,9 @@ impl Client<paho_mqtt::Message> for MqttClient {
         self.cli.publish(msg).await.unwrap();
     }
 
-    async fn receive(
+    async fn receive<T: message_handler::MessageHandler<paho_mqtt::Message> + Send + Sync>(
         &mut self,
-        mut handler: (impl message_handler::MessageHandler<paho_mqtt::Message> + Send + Sync),
+        mut handler: T,
     ) {
         while let Some(msg) = self.stream.next().await {
             log::debug!("Received message: {:?}", msg);
