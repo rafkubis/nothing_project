@@ -1,4 +1,5 @@
 pub use crate::client;
+use crate::client::Client;
 use crate::database;
 use crate::message_handler::MessageHandler;
 use crate::rest;
@@ -59,29 +60,32 @@ impl MqttMessageHandler {
     }
 }
 
-use async_trait::async_trait;
-use mockall::predicate::*;
-use mockall::*;
-
 #[tokio::test]
-async fn test() {
-    let mock = database::MockQuerryDropable::new();
-    let wrapped_mock = Arc::new(tokio::sync::Mutex::new(mock));
-    let mut handler = MqttMessageHandler::new(wrapped_mock);
+#[should_panic]
+async fn should_panic_when_invalid_message() {
+    let querry_dropable_mock = database::MockQuerryDropable::new();
+    let wrapped_querry_dropable_mock = Arc::new(tokio::sync::Mutex::new(querry_dropable_mock));
+    let mut handler = MqttMessageHandler::new(wrapped_querry_dropable_mock);
     let msg = paho_mqtt::Message::new("topic", vec![], paho_mqtt::QOS_0);
 
-    /*   mock!{
-     pub C{}
+    let client = client::MockClient::<paho_mqtt::Message>::new();
 
-      #[async_trait]
-       impl client::Client<paho_mqtt::Message> for C{
-           async  fn new() -> Self;
-             async fn send(&self, str: &str);
-           async fn receive<T: MessageHandler<paho_mqtt::Message> + Send + Sync + 'static>(&self, handler: T);
-       }
-    }*/
+    handler.handle_message(msg, &client).await;
+}
 
-    //  handler.handle_message(msg, client)
+#[tokio::test]
+async fn should_drop_querry() {
+    let mut querry_dropable_mock = database::MockQuerryDropable::new();
+    let _querry_exoectation = querry_dropable_mock
+        .expect_drop_querry()
+        .returning(|temperature, _datetime| assert_eq!(temperature, 21.37));
+    let wrapped_querry_dropable_mock = Arc::new(tokio::sync::Mutex::new(querry_dropable_mock));
+    let mut handler = MqttMessageHandler::new(wrapped_querry_dropable_mock);
 
-    //  assert_eq!(handler.handle_message(msg).await, Err(String::from("Parsing errorp")));
+    let json_msg = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
+    let msg = paho_mqtt::Message::new("topic", json_msg, paho_mqtt::QOS_0);
+
+    let client = client::MockClient::<paho_mqtt::Message>::new();
+
+    handler.handle_message(msg, &client).await;
 }

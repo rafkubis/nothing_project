@@ -123,7 +123,7 @@ async fn test_mqtt() {
     let test_case = async {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-        let client = MqttClient::new().await;
+        let client = MqttClient::connect().await;
         let message = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
         client.send(message).await;
         client.send(message).await;
@@ -145,7 +145,11 @@ async fn test_mqtt() {
     };
 
     tokio::select! {
-        _ = app::app() => {}
+        _ = app::app() =>
+        {
+            log::error!("app finised before testcase");
+            assert!(false);
+        }
         _ = tokio::time::sleep(tokio::time::Duration::from_secs(30)) =>
         {
             log::error!("Tineout");

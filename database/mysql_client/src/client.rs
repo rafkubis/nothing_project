@@ -1,14 +1,16 @@
 pub use crate::message_handler;
 use async_trait::async_trait;
 use futures::stream::StreamExt;
-use mockall;
+use mockall::*;
 use paho_mqtt;
 use std::time::Duration;
 
-pub trait Client<Msg> {
-    fn new() -> impl std::future::Future<Output = Self>;
+#[async_trait]
+#[automock]
+pub trait Client<Msg: 'static> {
+    fn connect() -> impl std::future::Future<Output = Self>;
     fn send(&self, str: &str) -> impl std::future::Future<Output = ()> + Send + Sync;
-    fn receive<T: message_handler::MessageHandler<Msg> + Send + Sync>(
+    fn receive<T: message_handler::MessageHandler<Msg> + Send + Sync + 'static>(
         &mut self,
         handler: T,
     ) -> impl std::future::Future<Output = ()> + Send + Sync;
@@ -25,7 +27,7 @@ pub struct MqttClient {
 //unsafe impl Sync for MqttClient {}
 
 impl Client<paho_mqtt::Message> for MqttClient {
-    async fn new() -> Self {
+    async fn connect() -> Self {
         let mut cli = paho_mqtt::AsyncClient::new("tcp://mqtt:1883").unwrap();
         let conn_opts = paho_mqtt::ConnectOptionsBuilder::new()
             .keep_alive_interval(Duration::from_secs(20))

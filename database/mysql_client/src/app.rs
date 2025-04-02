@@ -11,7 +11,7 @@ use tokio;
 
 pub async fn app() {
     log::info!("Starting application");
-    let mqtt_client = client::MqttClient::new().await;
+    let mqtt_client = client::MqttClient::connect().await;
     let mut mqtt_client2 = mqtt_client.clone();
 
     let task2 = async move {
@@ -21,7 +21,15 @@ pub async fn app() {
         mqtt_client2.receive(message_handler).await;
     };
 
-    tokio::join!(task2, mqtt_recevier(mqtt_client), tick(60));
+    let tick_1s_handle = tokio::spawn(tick(1));
+    let tick_2s_handle = tokio::spawn(tick(2));
+    let task_2_handle = tokio::spawn(task2);
+    let mqtt_receiver_handle = tokio::spawn(mqtt_recevier(mqtt_client));
+
+    tick_1s_handle.await.unwrap();
+    tick_2s_handle.await.unwrap();
+    task_2_handle.await.unwrap();
+    mqtt_receiver_handle.await.unwrap();
 }
 
 pub async fn mqtt_recevier(mut mqtt_client: client::MqttClient) {
@@ -34,6 +42,6 @@ pub async fn mqtt_recevier(mut mqtt_client: client::MqttClient) {
 pub async fn tick(seconds: u64) {
     loop {
         tokio::time::sleep(tokio::time::Duration::from_secs(seconds)).await;
-        log::info!("Tick ");
+        log::info!("Tick {} s", seconds);
     }
 }
