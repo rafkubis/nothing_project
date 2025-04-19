@@ -4,19 +4,18 @@ use futures::future::BoxFuture;
 use std::cell::RefCell;
 use std::sync::Arc;
 use testcontainers::core::logs::consumer::LogConsumer;
-use testcontainers::core::Mount;
-use testcontainers::ImageExt;
-use testcontainers::{
-    core::{IntoContainerPort, WaitFor},
-    runners::AsyncRunner,
-    GenericImage,
-};
-use tokio;
-use tokio::io::AsyncWriteExt;
-
+//use testcontainers::core::Mount;
+//use testcontainers::ImageExt;
 use crate::{app, client::Client, client::MqttClient, database, logger};
 use mysql::{prelude::Queryable, Row};
 use std::env;
+use testcontainers::{
+    core::{IntoContainerPort, Mount, WaitFor},
+    runners::AsyncRunner,
+    GenericImage, ImageExt,
+};
+use tokio;
+use tokio::io::AsyncWriteExt;
 
 #[cfg(test)]
 struct MyLogConsumer {
@@ -31,7 +30,7 @@ impl MyLogConsumer {
 }
 
 #[cfg(test)]
-impl LogConsumer for MyLogConsumer {
+impl testcontainers::core::logs::consumer::LogConsumer for MyLogConsumer {
     fn accept<'a>(&'a self, record: &'a testcontainers::core::logs::LogFrame) -> BoxFuture<'a, ()> {
         Box::pin(async move {
             self.file
@@ -56,11 +55,11 @@ async fn start_mqtt_container(
     let log_mqtt = Arc::new(tokio::sync::Mutex::new(RefCell::new(
         tokio::fs::File::create(log_filepath).await.unwrap(),
     )));
-    let ready_msg = "mosquitto version 2.0.20 running";
+    let ready_msg = "mosquitto version 2.0.21 running";
     let img = GenericImage::new("eclipse-mosquitto", "latest")
         .with_wait_for(WaitFor::message_on_stdout(ready_msg))
         .with_mapped_port(1883, 1883.tcp())
-        .with_network("mosquitto_default")
+        .with_network("nothing_project")
         .with_mount(Mount::bind_mount(
             host_project_pwd + "/broker/mosquitto/",
             "/mosquitto/",
@@ -85,7 +84,7 @@ async fn start_mysql_container(
         .with_wait_for(WaitFor::message_on_stderr(ready_msg))
         .with_mapped_port(3306, 3306.tcp())
         .with_env_var("MYSQL_ROOT_PASSWORD", "strong_password")
-        .with_network("mosquitto_default")
+        .with_network("nothing_project")
         .with_container_name(name)
         .with_log_consumer(MyLogConsumer::new(log_sql));
 
@@ -123,10 +122,13 @@ async fn test_mqtt() {
     let test_case = async {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-        let client = MqttClient::connect().await;
-        let message = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
-        client.send(message).await;
-        client.send(message).await;
+        let client = MqttClient::new();
+        client.connect().await;
+        let payload = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
+        let message = paho_mqtt::Message::new("temperature", payload, paho_mqtt::QOS_0);
+
+        client.send(message.clone()).await;
+        client.send(message.clone()).await;
         client.send(message).await;
 
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -145,12 +147,12 @@ async fn test_mqtt() {
     };
 
     tokio::select! {
-        _ = app::app() =>
+         _ = app::app() =>
         {
             log::error!("app finised before testcase");
             assert!(false);
         }
-        _ = tokio::time::sleep(tokio::time::Duration::from_secs(30)) =>
+        _ = tokio::time::sleep(tokio::time::Duration::from_secs(10)) =>
         {
             log::error!("Tineout");
             assert!(false);

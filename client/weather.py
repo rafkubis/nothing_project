@@ -6,10 +6,9 @@ from uniplot import plot
 
 
 weather = requests.get("https://api.openweathermap.org/data/3.0/onecall?lat=51.44&lon=-17.04&appid=393a3378086a16e084baa6e49a3b7527")
-
+#print(weather.content)
 
 decoded = json.loads(weather.content)
-
 #print(decoded["hourly"])
 
 clouds = []
@@ -26,6 +25,14 @@ for hour in decoded["hourly"]:
     dt.append(a)
     cloudsTime.append((date, cloud))
 
-print(timeStr)
-
 plot(clouds[0:23], dt[0:23], title="Sine wave")
+
+dtCloudJson = []
+for dt, cloud in cloudsTime:
+    #print(dt, cloud)
+    dtCloudJson.append(json.dumps({"dt": dt, "cloud": cloud}))
+
+#print(dtCloudJson)
+
+res = json.dumps({"wheather": dtCloudJson})
+print(res)

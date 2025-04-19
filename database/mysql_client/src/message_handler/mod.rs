@@ -1,5 +1,9 @@
 pub mod dummy_mqtt;
+pub mod json_multisensor;
+pub mod json_wheather;
 pub mod mqtt;
+pub mod shared_data;
+
 use crate::client;
 
 pub trait MessageHandler<Msg: 'static> {

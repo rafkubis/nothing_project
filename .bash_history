@@ -228,3 +228,71 @@ python --version
 python3 --version
 whereis python3
 exit
+cd app/
+gits
+git diff
+cd database/
+cd mysql_client/
+ls
+cargo build
+cargo fmt
+cargo build
+cargo test
+exit
+/bin/python3 /app/client/weather.py
+whereis
+whereis nvvidia
+whereis nvidia
+exit
+nvidia
+nnvc
+exit
+cd app/database/mysql_client/
+ls
+cargo test
+dokce rps
+docker ps
+docker stop 0992dd1eb516
+docker stop 159bb3ac1921
+docker image prune
+cargo test
+docker image prune
+cargo test
+docker image prune
+docker ps
+docker images prune
+docker image prune
+cargo test
+dokcer images ls
+docker images ls
+docker image ls
+gits
+docker rm 159bb3ac1921d99a3a830485be77653b24590f057caa85396e11c60e6ff196be
+cargo test
+docker image rm 0992dd1eb5162b482cf26d4341702aa942f65630cb27920c80c9bdacb5156ef8
+docker rm 0992dd1eb5162b482cf26d4341702aa942f65630cb27920c80c9bdacb5156ef8
+cargo test
+docker prune
+docker --help
+docker rm 008a5b597387612ccb8ee219ad8d471c929b46be59a2e055fba8ade46d741681\
+docker rm 008a5b597387612ccb8ee219ad8d471c929b46be59a2e055fba8ade46d741681
+docker image rm  008a5b597387612ccb8ee219ad8d471c929b46be59a2e055fba8ade46d741681
+
+cargo test
+docker ps
+docker stop 5c8a9c495612
+docker stop 7d8cc04c71e1
+docker image prune
+cargo test
+cargo run
+cargo test
+docker ps
+docker image rm 5c8a9c4956125bc66790082b23a8323902d69cabdd0e56f05c89a6c6492280bd
+docker rm 5c8a9c4956125bc66790082b23a8323902d69cabdd0e56f05c89a6c6492280bd
+dokcer rm prune
+docker rm prune
+docker image prune
+cargo test
+docker rm 7d8cc04c71e10f1a2ca5880884d89dc3b6644f51ab3f3e55269ee07d22b33087
+cargo test
+exit

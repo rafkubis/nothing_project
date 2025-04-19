@@ -1,1 +1,7 @@
 *.log
+*.out
+
+
+
+.vscode-server/
+build/

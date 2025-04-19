@@ -28,6 +28,15 @@ services:
       - ./.bash_history:/root/.bash_history
       - ./.bashrc:/root/.bashrc
       - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - network1
 
   grphana:
     image: grafana/grafana
@@ -49,4 +58,4 @@ volumes:
 networks:
   network1:
     external: true
-    name: mosquitto_default
+    name: nothing_project
