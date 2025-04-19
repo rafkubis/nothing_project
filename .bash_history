@@ -228,3 +228,15 @@ python --version
 python3 --version
 whereis python3
 exit
+cd app/
+gits
+git diff
+cd database/
+cd mysql_client/
+ls
+cargo build
+cargo fmt
+cargo build
+cargo test
+exit
+/bin/python3 /app/client/weather.py

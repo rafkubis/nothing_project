@@ -2,14 +2,13 @@ pub use crate::message_handler;
 use async_trait::async_trait;
 use futures::stream::StreamExt;
 use mockall::*;
-use paho_mqtt;
 use std::time::Duration;
 
 #[async_trait]
 #[automock]
 pub trait Client<Msg: 'static> {
     fn connect() -> impl std::future::Future<Output = Self>;
-    fn send(&self, str: &str) -> impl std::future::Future<Output = ()> + Send + Sync;
+    fn send(&self, msg: Msg) -> impl std::future::Future<Output = ()> + Send + Sync;
     fn receive<T: message_handler::MessageHandler<Msg> + Send + Sync + 'static>(
         &mut self,
         handler: T,
@@ -21,6 +20,14 @@ pub struct MqttClient {
     cli: paho_mqtt::AsyncClient,
     conn_opts: paho_mqtt::ConnectOptions,
     stream: paho_mqtt::AsyncReceiver<Option<paho_mqtt::Message>>,
+}
+
+impl MqttClient {
+    pub async fn subscribe(&self, topic: &str) {
+        let token: paho_mqtt::Token = self.cli.subscribe(topic, paho_mqtt::QOS_0);
+        let result = token.await;
+        log::info!("Subscribe to {} result: {:?}", topic, result);
+    }
 }
 
 //unsafe impl Send for MqttClient {}
@@ -43,8 +50,6 @@ impl Client<paho_mqtt::Message> for MqttClient {
             log::info!("Connect result: {:?}", result);
         }
 
-        cli.subscribe("test/topic", paho_mqtt::QOS_0).await.unwrap();
-
         MqttClient {
             cli: cli,
             conn_opts: conn_opts,
@@ -52,10 +57,11 @@ impl Client<paho_mqtt::Message> for MqttClient {
         }
     }
 
-    async fn send(&self, str: &str) {
-        log::info!("Sending message {}", str);
-        let msg = paho_mqtt::Message::new("test/topic", str, paho_mqtt::QOS_0);
-        self.cli.publish(msg).await.unwrap();
+    async fn send(&self, massage: paho_mqtt::Message) {
+        log::debug!("Sending message {}", massage);
+        if let Err(err) = self.cli.publish(massage).await {
+            log::error!("{}", err);
+        }
     }
 
     async fn receive<T: message_handler::MessageHandler<paho_mqtt::Message> + Send + Sync>(

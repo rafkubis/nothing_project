@@ -124,9 +124,11 @@ async fn test_mqtt() {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
         let client = MqttClient::connect().await;
-        let message = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
-        client.send(message).await;
-        client.send(message).await;
+        let payload = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
+        let message = paho_mqtt::Message::new("temperature", payload, paho_mqtt::QOS_0);
+
+        client.send(message.clone()).await;
+        client.send(message.clone()).await;
         client.send(message).await;
 
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;

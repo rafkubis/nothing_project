@@ -6,7 +6,7 @@ pub mod client;
 pub mod database;
 pub mod logger;
 pub mod message_handler;
-pub mod rest;
+//pub mod json_multisensor;
 
 fn get_log_path() -> Option<String> {
     let args: Vec<String> = env::args().collect();

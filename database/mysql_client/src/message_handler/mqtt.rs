@@ -1,18 +1,26 @@
+use super::json_multisensor;
+use super::json_wheather;
+use super::shared_data;
 pub use crate::client;
-use crate::client::Client;
 use crate::database;
+use crate::logger;
 use crate::message_handler::MessageHandler;
-use crate::rest;
 use mysql::serde_json;
 use std::sync::Arc;
 
 pub struct MqttMessageHandler {
     sql: Arc<tokio::sync::Mutex<dyn database::QuerryDropable + Send + Sync>>,
+    error_tx: tokio::sync::mpsc::Sender<String>,
+    shared_data: Arc<tokio::sync::RwLock<shared_data::Data>>
 }
 
 impl MqttMessageHandler {
-    pub fn new(sql: Arc<tokio::sync::Mutex<dyn database::QuerryDropable + Send + Sync>>) -> Self {
-        MqttMessageHandler { sql }
+    pub fn new(
+        sql: Arc<tokio::sync::Mutex<dyn database::QuerryDropable + Send + Sync>>,
+        error_tx: tokio::sync::mpsc::Sender<String>,
+        shared_data: Arc<tokio::sync::RwLock<shared_data::Data>>
+    ) -> Self {
+        MqttMessageHandler { sql, error_tx, shared_data }
     }
 }
 
@@ -26,13 +34,28 @@ impl MessageHandler<paho_mqtt::Message> for MqttMessageHandler {
         _client: &(impl client::Client<paho_mqtt::Message> + Send + Sync),
     ) {
         log::info!("Received message: {:?}", msg);
-        self.handle_message_internal(msg).await.unwrap();
+
+        let result = match msg.topic() {
+            "temperature" => self.handle_message_internal_multisensor(msg).await,
+            "wheather" => self.handle_message_internal_wheater(msg),
+            _ => Err(String::from("handler for topic not found")),
+        };
+
+        match result {
+            Ok(_) => {}
+            Err(error) => {
+                self.error_tx.send(error).await.unwrap();
+            }
+        }
     }
 }
 
 impl MqttMessageHandler {
-    async fn handle_message_internal(&mut self, msg: paho_mqtt::Message) -> Result<f32, String> {
-        let parsed = serde_json::from_str::<rest::Root>(msg.payload_str().as_ref());
+    async fn handle_message_internal_multisensor(
+        &mut self,
+        msg: paho_mqtt::Message,
+    ) -> Result<f32, String> {
+        let parsed = serde_json::from_str::<json_multisensor::Root>(msg.payload_str().as_ref());
         match parsed {
             Ok(parsed) => {
                 log::info!("Parsed: {:?}", parsed);
@@ -53,7 +76,14 @@ impl MqttMessageHandler {
         }
     }
 
-    fn calculate_temperature(parsed: rest::Root) -> f32 {
+    fn handle_message_internal_wheater(&self, msg: paho_mqtt::Message) -> Result<f32, String> {
+        let parsed =
+            serde_json::from_str::<json_wheather::Root>(msg.payload_str().as_ref()).unwrap();
+        log::info!("{:?}", parsed);
+        Ok(1.2)
+    }
+
+    fn calculate_temperature(parsed: json_multisensor::Root) -> f32 {
         let mut temperature = (parsed.multi_sensor.sensors[0].value / 100) as f32;
         temperature += (parsed.multi_sensor.sensors[0].value as f32 - temperature * 100.0) / 100.0;
         temperature
@@ -61,12 +91,31 @@ impl MqttMessageHandler {
 }
 
 #[tokio::test]
-#[should_panic]
-async fn should_panic_when_invalid_message() {
+async fn should_push_msg_on_error_channel_when_invalid_message() {
     let querry_dropable_mock = database::MockQuerryDropable::new();
     let wrapped_querry_dropable_mock = Arc::new(tokio::sync::Mutex::new(querry_dropable_mock));
-    let mut handler = MqttMessageHandler::new(wrapped_querry_dropable_mock);
-    let msg = paho_mqtt::Message::new("topic", vec![], paho_mqtt::QOS_0);
+    let mut error_channel = tokio::sync::mpsc::channel::<String>(3);
+    let mut handler = MqttMessageHandler::new(wrapped_querry_dropable_mock, error_channel.0);
+    let msg = paho_mqtt::Message::new("temperature", vec![], paho_mqtt::QOS_0);
+
+    let client = client::MockClient::<paho_mqtt::Message>::new();
+
+    handler.handle_message(msg, &client).await;
+    assert_eq!(error_channel.1.recv().await.unwrap(), "Parsing error");
+}
+
+#[tokio::test]
+async fn should_drop_querry() {
+    let mut querry_dropable_mock = database::MockQuerryDropable::new();
+    querry_dropable_mock
+        .expect_drop_querry()
+        .returning(|temperature, _datetime| assert_eq!(temperature, 21.37));
+    let wrapped_querry_dropable_mock = Arc::new(tokio::sync::Mutex::new(querry_dropable_mock));
+    let error_channel = tokio::sync::mpsc::channel::<String>(3);
+    let mut handler = MqttMessageHandler::new(wrapped_querry_dropable_mock, error_channel.0);
+
+    let json_msg = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
+    let msg = paho_mqtt::Message::new("temperature", json_msg, paho_mqtt::QOS_0);
 
     let client = client::MockClient::<paho_mqtt::Message>::new();
 
@@ -74,17 +123,20 @@ async fn should_panic_when_invalid_message() {
 }
 
 #[tokio::test]
-async fn should_drop_querry() {
+async fn should_painc() {
     let mut querry_dropable_mock = database::MockQuerryDropable::new();
-    let _querry_exoectation = querry_dropable_mock
+    querry_dropable_mock
         .expect_drop_querry()
         .returning(|temperature, _datetime| assert_eq!(temperature, 21.37));
     let wrapped_querry_dropable_mock = Arc::new(tokio::sync::Mutex::new(querry_dropable_mock));
-    let mut handler = MqttMessageHandler::new(wrapped_querry_dropable_mock);
+    let error_channel = tokio::sync::mpsc::channel::<String>(3);
 
-    let json_msg = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
-    let msg = paho_mqtt::Message::new("topic", json_msg, paho_mqtt::QOS_0);
+    let mut handler = MqttMessageHandler::new(wrapped_querry_dropable_mock, error_channel.0);
 
+  // let json_msg = "{\"wheather\": {\"data\": [{\"dt\": 1744452000, \"cloud\": 96}, {\"dt\": 1744455600, \"cloud\": 96}]}}";
+
+    let json_msg = "{\"wheather\": [{\"dt\": 1744452000, \"cloud\": 96}, {\"dt\": 1744455600, \"cloud\": 96}]}";
+    let msg = paho_mqtt::Message::new("wheather", json_msg, paho_mqtt::QOS_0);
     let client = client::MockClient::<paho_mqtt::Message>::new();
 
     handler.handle_message(msg, &client).await;
