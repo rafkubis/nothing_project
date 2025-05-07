@@ -7,7 +7,7 @@ use std::time::Duration;
 #[async_trait]
 #[automock]
 pub trait Client<Msg: 'static> {
-    fn connect() -> impl std::future::Future<Output = Self>;
+    fn connect(&self) -> impl std::future::Future<Output = ()>;
     fn send(&self, msg: Msg) -> impl std::future::Future<Output = ()> + Send + Sync;
     fn receive<T: message_handler::MessageHandler<Msg> + Send + Sync + 'static>(
         &mut self,
@@ -33,8 +33,8 @@ impl MqttClient {
 //unsafe impl Send for MqttClient {}
 //unsafe impl Sync for MqttClient {}
 
-impl Client<paho_mqtt::Message> for MqttClient {
-    async fn connect() -> Self {
+impl MqttClient {
+    pub fn new() -> Self {
         let mut cli = paho_mqtt::AsyncClient::new("tcp://mqtt:1883").unwrap();
         let conn_opts = paho_mqtt::ConnectOptionsBuilder::new()
             .keep_alive_interval(Duration::from_secs(20))
@@ -42,19 +42,19 @@ impl Client<paho_mqtt::Message> for MqttClient {
             .user_name("app")
             .password("test_app")
             .finalize();
-
         let stream = cli.get_stream(10);
-        let mut result = cli.connect(conn_opts.clone()).await;
-        while result.is_err() {
-            result = cli.connect(conn_opts.clone()).await;
-            log::info!("Connect result: {:?}", result);
-        }
-
-        MqttClient {
+        Self {
             cli: cli,
             conn_opts: conn_opts,
             stream: stream,
         }
+    }
+}
+
+impl Client<paho_mqtt::Message> for MqttClient {
+    async fn connect(&self) {
+        let result = self.cli.connect(self.conn_opts.clone()).await;
+        log::info!("Connect result: {:?}", result);
     }
 
     async fn send(&self, massage: paho_mqtt::Message) {

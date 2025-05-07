@@ -1,8 +1,8 @@
 pub mod dummy_mqtt;
 pub mod json_multisensor;
 pub mod json_wheather;
-pub mod shared_data;
 pub mod mqtt;
+pub mod shared_data;
 
 use crate::client;
 
