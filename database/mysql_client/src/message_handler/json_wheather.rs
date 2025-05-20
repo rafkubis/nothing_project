@@ -1,9 +1,9 @@
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct DtClouds {
-    dt: u32,
-    cloud: u32,
+    pub dt: u32,
+    pub cloud: u32,
 }
 
 #[derive(Debug, Deserialize)]

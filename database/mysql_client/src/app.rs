@@ -2,9 +2,21 @@ extern crate paho_mqtt as mqtt;
 pub use crate::client;
 use crate::client::Client;
 pub use crate::database;
+pub use crate::forcast_provider;
+pub use crate::logic;
 pub use crate::message_handler;
 use std::sync::Arc;
 use tokio;
+
+macro_rules! spawn{
+    ($x:expr) => {
+        tokio::spawn($x)
+    };
+    ($e:expr, $($y:expr), *) => {
+        spawn!($e);
+        spawn!($($y),*)
+    }
+}
 
 pub async fn app() {
     log::info!("Starting application");
@@ -24,21 +36,23 @@ pub async fn app() {
         let message_handler = message_handler::dummy_mqtt::DummyMqttHandler {};
         mqtt_client2.receive(message_handler).await;
     };
-    let tick_1s_handle = tokio::spawn(tick(1));
-    let tick_2s_handle = tokio::spawn(tick(2));
-    let task_2_handle = tokio::spawn(task2);
-    let mqtt_receiver_handle = tokio::spawn(mqtt_recevier(
+
+    spawn!(tick(2), tick(1));
+
+    let driver_task_handle = tokio::spawn(driver_task(shared_data.clone()));
+    let task2_handle = tokio::spawn(task2);
+    let mqtt_reciver_handle = tokio::spawn(mqtt_recevier(
         mqtt_client,
         error_channel_tx.clone(),
-        shared_data,
+        shared_data.clone(),
     ));
-    let _error_handle = tokio::spawn(handle_errors(error_channel_rx));
+    let handle_erros_handle = tokio::spawn(handle_errors(error_channel_rx));
 
-    let _ = tokio::join!(
-        tick_1s_handle,
-        tick_2s_handle,
-        task_2_handle,
-        mqtt_receiver_handle
+    _ = tokio::join!(
+        mqtt_reciver_handle,
+        handle_erros_handle,
+        task2_handle,
+        driver_task_handle
     );
 }
 
@@ -74,4 +88,29 @@ pub async fn create_mqtt_client() -> client::MqttClient {
     mqtt_client.subscribe("temperature").await;
     mqtt_client.subscribe("wheather").await;
     mqtt_client
+}
+
+pub async fn driver_task(
+    shared_data: Arc<tokio::sync::RwLock<message_handler::shared_data::Data>>,
+) {
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    loop {
+        let forcast = forcast_provider::ForecastProvider::new(shared_data.clone())
+            .get()
+            .await;
+        if forcast.is_none() {
+            log::warn!("No forecast data");
+            continue;
+        } else {
+            let result = logic::should_stop(30.90, 70, forcast.unwrap()).to_string();
+            log::info!("Result: {}", result);
+
+            let msg = paho_mqtt::Message::new("driver", result, paho_mqtt::QOS_2);
+
+            let mqtt_client = client::MqttClient::new();
+            mqtt_client.connect().await;
+            mqtt_client.send(msg).await;
+        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
+    }
 }

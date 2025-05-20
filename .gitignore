@@ -3,3 +3,4 @@
 /.vscode-server/*
 /build/*
 build*
+*__pycache__*

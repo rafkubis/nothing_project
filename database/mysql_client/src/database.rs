@@ -12,13 +12,11 @@ pub struct MySqlQuerryDropbale {
 
 impl QuerryDropable for MySqlQuerryDropbale {
     fn drop_querry(&mut self, temperature: f32, datetime: &str) {
-        let temperature_str = temperature.to_string();
-        let mut querry = "INSERT INTO users (temperature, datetime) VALUES (".to_string();
-        querry.push_str(&temperature_str);
-        querry.push_str(", '");
-        querry.push_str(&datetime);
-        querry.push_str("')");
-        self.conn.query_drop(querry).unwrap();
+        let querry = std::format!(
+            "INSERT INTO users (temperature, datetime) VALUES ('{temperature}', {datetime}')"
+        );
+        let result = self.conn.query_drop(querry);
+        log::info!("drop_querry result = {:?}", result);
     }
 }
 

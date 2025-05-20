@@ -1,7 +1,7 @@
 import requests
 import json
 import datetime
-from uniplot import plot
+#from uniplot import plot
 
 
 
@@ -18,14 +18,14 @@ timeStr = []
 
 for hour in decoded["hourly"]:
     cloud = hour["clouds"] 
-    clouds.append(hour["clouds"])
-    timeStr.append((datetime.datetime.fromtimestamp(hour["dt"]).strftime('%Y-%m-%d %H:%M:%S'), cloud))
+   # clouds.append(hour["clouds"])
+   # timeStr.append((datetime.datetime.fromtimestamp(hour["dt"]).strftime('%Y-%m-%d %H:%M:%S'), cloud))
     date = hour["dt"]
-    a = datetime.datetime.fromtimestamp(date).hour
-    dt.append(a)
+   # a = datetime.datetime.fromtimestamp(date).hour
+   # dt.append(a)
     cloudsTime.append((date, cloud))
 
-plot(clouds[0:23], dt[0:23], title="Sine wave")
+#plot(clouds[0:23], dt[0:23], title="Sine wave")
 
 dtCloudJson = []
 for dt, cloud in cloudsTime:
