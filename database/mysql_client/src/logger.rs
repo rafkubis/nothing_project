@@ -17,17 +17,18 @@ pub fn init_logger(file_path: Option<String>) {
             record.args()
         )
     };
+
+    let mut builder = Builder::from_default_env();
+    builder.format(format_func);
+
     if file_path.is_some() {
         let file: Box<File> = Box::new(std::fs::File::create(file_path.unwrap()).unwrap());
-        Builder::from_default_env()
-            .target(Target::Pipe(file))
-            .format(format_func)
-            .init();
+        builder.target(Target::Pipe(file));
     } else {
-        Builder::from_default_env()
-            .target(Target::Stdout)
-            .format(format_func)
-            .filter_level(log::LevelFilter::Info)
-            .init();
+        builder.target(Target::Stdout);
     }
+
+    builder.try_init().unwrap_or_else(|e| {
+        eprintln!("Failed to initialize logger: {}", e);
+    });
 }

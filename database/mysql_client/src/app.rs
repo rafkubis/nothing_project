@@ -2,18 +2,45 @@ extern crate paho_mqtt as mqtt;
 pub use crate::client;
 use crate::client::Client;
 pub use crate::database;
+<<<<<<< HEAD
 pub use crate::message_handler;
 use crate::message_handler::shared_data;
+=======
+pub use crate::forcast_provider;
+pub use crate::logic;
+pub use crate::message_handler;
+pub use crate::types;
+>>>>>>> refs/remotes/origin/master
 use std::sync::Arc;
 use tokio;
 
+macro_rules! spawn {
+    ($x:expr) => {
+        tokio::spawn($x);
+    };
+    ($e:expr, $($y:expr), *) => {
+
+            spawn!($e);
+            spawn!($($y),+);
+    }
+}
+
 pub async fn app() {
     log::info!("Starting application");
+<<<<<<< HEAD
     let shared_data = Arc::new(tokio::sync::RwLock::new(
         message_handler::shared_data::Data::new(),
     ));
 
     let (mqtt_client, mut mqtt_client2) = create_mqtt_clients().await;
+=======
+    let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data {
+        clouds_forecast: vec![],
+    }));
+    let mqtt_client = create_mqtt_client().await;
+    let mut mqtt_client2 = create_mqtt_client().await;
+
+>>>>>>> refs/remotes/origin/master
     let (error_channel_tx, error_channel_rx) = tokio::sync::mpsc::channel::<String>(3);
 
     let task2 = async move {
@@ -21,6 +48,7 @@ pub async fn app() {
         let message_handler = message_handler::dummy_mqtt::DummyMqttHandler {};
         mqtt_client2.receive(message_handler).await;
     };
+<<<<<<< HEAD
     log::info!("Starting tasks");
     let tick_1s_handle = tokio::spawn(tick(1));
     let tick_2s_handle = tokio::spawn(tick(2));
@@ -31,13 +59,29 @@ pub async fn app() {
         shared_data,
     ));
     let _error_handle = tokio::spawn(handle_errors(error_channel_rx));
+=======
 
-    tick_1s_handle.await.unwrap();
-    tick_2s_handle.await.unwrap();
-    task_2_handle.await.unwrap();
-    mqtt_receiver_handle.await.unwrap();
+    spawn!(tick(2), tick(1), tick(3));
+>>>>>>> refs/remotes/origin/master
+
+    let driver_task_handle = tokio::spawn(driver_task(shared_data.clone()));
+    let task2_handle = tokio::spawn(task2);
+    let mqtt_reciver_handle = tokio::spawn(mqtt_recevier(
+        mqtt_client,
+        error_channel_tx.clone(),
+        shared_data.clone(),
+    ));
+    let handle_erros_handle = tokio::spawn(handle_errors(error_channel_rx));
+
+    _ = tokio::join!(
+        mqtt_reciver_handle,
+        handle_erros_handle,
+        task2_handle,
+        driver_task_handle
+    );
 }
 
+<<<<<<< HEAD
 pub async fn create_mqtt_clients() -> (client::MqttClient, client::MqttClient) {
     log::info!("Creating MQTT clients");
     let mqtt_client = client::MqttClient::new();
@@ -73,6 +117,23 @@ pub async fn mqtt_recevier(
     let conn = Arc::new(tokio::sync::Mutex::new(database::MySqlQuerryDropbale::new()));
     let message_handler =
         message_handler::mqtt::MqttMessageHandler::new(conn, error_channel_tx, shared_data);
+=======
+pub async fn mqtt_recevier(
+    mut mqtt_client: client::MqttClient,
+    error_channel_tx: tokio::sync::mpsc::Sender<String>,
+    shared_data: Arc<tokio::sync::RwLock<types::shared_data::Data>>,
+) {
+    log::info!("Start MQTT Receiver Task");
+    let conn = tokio::task::spawn_blocking(|| {
+        Arc::new(tokio::sync::Mutex::new(database::MySqlQuerryDropbale::new()))
+    })
+    .await
+    .unwrap();
+
+    let async_conn = database::AsyncQuerryDropbaleWrapper::new(conn);
+    let message_handler =
+        message_handler::mqtt::MqttMessageHandler::new(async_conn, error_channel_tx, shared_data);
+>>>>>>> refs/remotes/origin/master
     mqtt_client.receive(message_handler).await;
 }
 
@@ -89,3 +150,38 @@ pub async fn handle_errors(mut rx: tokio::sync::mpsc::Receiver<String>) {
     }
     log::warn!("channel is closed");
 }
+<<<<<<< HEAD
+=======
+
+pub async fn create_mqtt_client() -> client::MqttClient {
+    let mqtt_client = client::MqttClient::new();
+    mqtt_client.connect().await;
+    mqtt_client.subscribe("temperature").await;
+    mqtt_client.subscribe("wheather").await;
+    mqtt_client
+}
+
+pub async fn driver_task(shared_data: Arc<tokio::sync::RwLock<types::shared_data::Data>>) {
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    loop {
+        let forcast = forcast_provider::ForecastProvider::new(shared_data.clone())
+            .get()
+            .await;
+
+        if forcast.is_none() {
+            log::warn!("No forecast data");
+            continue;
+        } else {
+            let result = logic::should_stop(30.90, 70, forcast.unwrap()).to_string();
+            log::info!("Result: {}", result);
+
+            let msg = paho_mqtt::Message::new("driver", result, paho_mqtt::QOS_2);
+
+            let mqtt_client = client::MqttClient::new();
+            mqtt_client.connect().await;
+            mqtt_client.send(msg).await;
+        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
+    }
+}
+>>>>>>> refs/remotes/origin/master

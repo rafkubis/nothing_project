@@ -1,7 +1,7 @@
 import requests
 import json
 import datetime
-from uniplot import plot
+#from uniplot import plot
 
 
 
@@ -18,13 +18,10 @@ timeStr = []
 
 for hour in decoded["hourly"]:
     cloud = hour["clouds"] 
-    clouds.append(hour["clouds"])
-    timeStr.append((datetime.datetime.fromtimestamp(hour["dt"]).strftime('%Y-%m-%d %H:%M:%S'), cloud))
     date = hour["dt"]
-    a = datetime.datetime.fromtimestamp(date).hour
-    dt.append(a)
     cloudsTime.append((date, cloud))
 
+<<<<<<< HEAD
 plot(clouds[0:23], dt[0:23], title="Sine wave")
 
 dtCloudJson = []
@@ -33,6 +30,13 @@ for dt, cloud in cloudsTime:
     dtCloudJson.append(json.dumps({"dt": dt, "cloud": cloud}))
 
 #print(dtCloudJson)
+=======
+
+dtCloudJson = []
+for dt, cloud in cloudsTime:
+    dtCloudJson.append(json.dumps({"dt": dt, "cloud": cloud}))
+
+>>>>>>> refs/remotes/origin/master
 
 res = json.dumps({"wheather": dtCloudJson})
 print(res)

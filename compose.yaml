@@ -28,6 +28,7 @@ services:
       - ./.bash_history:/root/.bash_history
       - ./.bashrc:/root/.bashrc
       - /var/run/docker.sock:/var/run/docker.sock
+<<<<<<< HEAD
     deploy:
       resources:
         reservations:
@@ -35,6 +36,8 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+=======
+>>>>>>> refs/remotes/origin/master
     networks:
       - network1
 

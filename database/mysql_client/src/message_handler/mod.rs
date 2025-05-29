@@ -5,6 +5,7 @@ pub mod mqtt;
 pub mod shared_data;
 
 use crate::client;
+use crate::types;
 
 pub trait MessageHandler<Msg: 'static> {
     fn handle_message(

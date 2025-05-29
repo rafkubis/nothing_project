@@ -240,6 +240,7 @@ cargo build
 cargo test
 exit
 /bin/python3 /app/client/weather.py
+<<<<<<< HEAD
 whereis
 whereis nvvidia
 whereis nvidia
@@ -295,4 +296,118 @@ docker image prune
 cargo test
 docker rm 7d8cc04c71e10f1a2ca5880884d89dc3b6644f51ab3f3e55269ee07d22b33087
 cargo test
+=======
+printenv > "/tmp/tmp-745T4jdEIBFUNiI.txt"
+printenv > "/tmp/tmp-52327rvltpnZ3Dw9u.txt"
+cd app/database/
+pytest
+cd mysql_client
+cargo build
+pytest
+../pytest
+. ../pytest
+pytest ../
+pytest
+pytest ../
+gits
+cloc
+apt-get install cloc
+cloc .
+pytest ../
+cargo build && pytest ../
+cargo build && pytest ../ test_temperature_storage
+cargo build && pytest  test_temperature_storage
+cargo build && pytest ../ -- test_temperature_storage
+cargo build && pytest ../ --test= test_temperature_storage
+cargo build && pytest ../ --test=test_temperature_storage
+pytest --help
+pytest --help | grep test
+cargo build && pytest test_temperature_storage  ../ 
+cargo build && ../pytest test_temperature_storage 
+cargo build && ../.pytest test_temperature_storage 
+cargo build
+cargo build && pytest TestCase::test_temperature_storage 
+cargo build && pytest TestCase::test_temperature_storage  ../
+cargo build && pytest ../  TestCase::test_temperature_storage 
+cargo build && 
+cargo build && pytest integration_test.py::TestCase::test_temperature_storage
+cargo build && pytest integration_test.py::TestCase::test_temperature_storage ../
+cargo build && pytest ../ integration_test.py::TestCase::test_temperature_storage 
+cargo build
+cargo test
+cargo buidl
+cargo build
+cd 
+ls
+ll
+cd .viminfo 
+ls
+ls 
+ls .ssh/
+mv ~/.local/share/nvim ~/.local/share/nvim.bak
+mv ~/.local/state/nvim ~/.local/state/nvim.bak
+mv ~/.cache/nvim ~/.cache/nvim.bak
+git clone --depth 1 https://github.com/AstroNvim/template ~/.config/nvim
+rm -rf ~/.config/nvim/.git
+nvim
+nvim --version
+nvi
+apt install neovim
+apt install neovim:0.10
+apt install neovim::0.10
+apt-remove neovim
+apt remove neovim
+curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
+sudo rm -rf /opt/nvim
+sudo tar -C /opt -xzf nvim-linux-x86_64.tar.gz
+curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
+rm -rf /opt/nvim
+tar -C /opt -xzf nvim-linux-x86_64.tar.gz
+mkdir -p /opt/nvim
+mv nvim-linux-x86_64.appimage /opt/nvim/nvim
+export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
+nvim
+lvim
+nvim
+lvim
+whereis lvim
+exit
+ls
+cd home/
+ls
+ll
+cd ubuntu/
+ls
+ll
+cd
+cd /tmp/
+ls
+exit
+lvim
+nvim
+ls
+whereis nvim
+./root/.local/
+./root/.local/bin/lvim 
+exit
+lvim
+exit
+lvim 
+cd app/
+lvim
+cd 
+lvim
+cd .local/bin/lvim 
+cd .local/bin
+ll
+cd lvim 
+lvim
+./lvim 
+exit
+lvim
+cd app/
+lvim .
+c database/
+lvim database/integration_test.py 
+>>>>>>> refs/remotes/origin/master
 exit

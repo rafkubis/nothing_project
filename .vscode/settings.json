@@ -50,5 +50,14 @@
     "rust-analyzer.linkedProjects": [
         "/app/database/mysql_client/Cargo.toml"
     ],
+<<<<<<< HEAD
     "rust-analyzer.cargo.targetDir": "/app/build/database/mysql_client/rust_analyzer"
+=======
+    "rust-analyzer.cargo.targetDir": "/app/build/database/mysql_client/rust_analyzer",
+    "python.testing.pytestArgs": [
+        "client"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+>>>>>>> refs/remotes/origin/master
 }

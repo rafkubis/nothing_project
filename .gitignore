@@ -1,7 +1,16 @@
 *.log
+<<<<<<< HEAD
 *.out
 
 
 
 .vscode-server/
 build/
+=======
+
+/.vscode-server/*
+/build/*
+/user_data/*
+build*
+*__pycache__*
+>>>>>>> refs/remotes/origin/master
