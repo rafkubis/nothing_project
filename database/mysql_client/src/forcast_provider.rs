@@ -1,15 +1,15 @@
 pub use crate::logic;
-pub use crate::message_handler;
+pub use crate::types;
 use chrono::NaiveDateTime;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 pub struct ForecastProvider {
-    shared_data: Arc<RwLock<message_handler::shared_data::Data>>,
+    shared_data: Arc<RwLock<types::shared_data::Data>>,
 }
 
 impl ForecastProvider {
-    pub fn new(shared_data: Arc<RwLock<message_handler::shared_data::Data>>) -> Self {
+    pub fn new(shared_data: Arc<RwLock<types::shared_data::Data>>) -> Self {
         Self { shared_data }
     }
 
@@ -25,11 +25,11 @@ impl ForecastProvider {
 
 mod helper {
     use super::*;
-    use crate::message_handler::json_wheather;
+    use crate::types;
     use chrono::*;
 
     pub fn get_forecast(
-        forecast: &Vec<json_wheather::DtClouds>,
+        forecast: &Vec<types::json_wheather::DtClouds>,
         start_dt: u32,
         cnt: usize,
     ) -> Option<Vec<u32>> {
@@ -51,7 +51,7 @@ mod helper {
     #[cfg(test)]
     mod tests {
         use super::*;
-        use crate::message_handler::json_wheather;
+        use crate::types::json_wheather;
 
         fn get_forcast_data() -> Vec<json_wheather::DtClouds> {
             vec![

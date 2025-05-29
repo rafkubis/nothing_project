@@ -1,4 +1,7 @@
-use super::json_wheather;
+use crate::types::json_wheather;
+use std::sync::Arc;
+
+pub type SharedData = Arc<tokio::sync::RwLock<Data>>;
 
 pub struct Data {
     pub clouds_forecast: Vec<json_wheather::DtClouds>,

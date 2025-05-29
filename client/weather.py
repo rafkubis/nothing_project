@@ -18,21 +18,14 @@ timeStr = []
 
 for hour in decoded["hourly"]:
     cloud = hour["clouds"] 
-   # clouds.append(hour["clouds"])
-   # timeStr.append((datetime.datetime.fromtimestamp(hour["dt"]).strftime('%Y-%m-%d %H:%M:%S'), cloud))
     date = hour["dt"]
-   # a = datetime.datetime.fromtimestamp(date).hour
-   # dt.append(a)
     cloudsTime.append((date, cloud))
 
-#plot(clouds[0:23], dt[0:23], title="Sine wave")
 
 dtCloudJson = []
 for dt, cloud in cloudsTime:
-    #print(dt, cloud)
     dtCloudJson.append(json.dumps({"dt": dt, "cloud": cloud}))
 
-#print(dtCloudJson)
 
 res = json.dumps({"wheather": dtCloudJson})
 print(res)

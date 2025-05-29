@@ -67,7 +67,12 @@ class TestCase:
         return client
     
     def get_forecast(self):
-        weather = requests.get("https://api.openweathermap.org/data/3.0/onecall?lat=51.44&lon=-17.04&appid=393a3378086a16e084baa6e49a3b7527")
+        file = os.environ["PROJECT_USER_DATA"] + "/open_wheather/url.txt" 
+        with open(file, "r") as f:
+            url = f.read()
+        print(url)
+        
+        weather = requests.get(url)
         decoded = json.loads(weather.content)
         cloudsTime = []
 
@@ -79,14 +84,13 @@ class TestCase:
         dtCloudJson = []
         for dt, cloud in cloudsTime:
             dtCloudJson.append({"dt": dt, "cloud": cloud})
-         #   dtCloudJson.append(json.dumps({"dt": dt, "cloud": cloud}))
 
         res = json.dumps({"wheather": dtCloudJson})
         print(res)
 
         return res
 
-    def test_temperature_storage(self):
+    def test_mqtt_and_mysql(self):
         payload = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}"
 
         client = self.create_mqtt_client()
@@ -108,7 +112,7 @@ class TestCase:
         assert result[0][0] == 21.37
         time.sleep(5)
 
-    def test_mqtt_reconnection(self):
+    def test_driver(self):
         docker_client = docker.from_env()
         container = docker_client.containers.get("app-mqtt-1")
         container.restart()

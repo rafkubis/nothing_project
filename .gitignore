@@ -2,5 +2,6 @@
 
 /.vscode-server/*
 /build/*
+/user_data/*
 build*
 *__pycache__*

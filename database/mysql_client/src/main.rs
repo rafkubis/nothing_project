@@ -7,6 +7,7 @@ pub mod forcast_provider;
 pub mod logger;
 pub mod logic;
 pub mod message_handler;
+pub mod types;
 
 fn get_log_path() -> Option<String> {
     let args: Vec<String> = env::args().collect();

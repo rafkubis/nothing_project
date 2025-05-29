@@ -9,14 +9,10 @@ RUN apt-get install -y mosquitto-clients net-tools iputils-ping
 RUN apt-get install -y traceroute python3 python3-pip git 
 RUN apt-get install -y iproute2 telnet strace docker.io docker-compose
 RUN apt-get install -y mysql-client-core-8.0 vim build-essential pkg-config libssl-dev
-RUN apt-get install -y cmake nmap ca-certificates neovim cloc unzip fontconfig
+RUN apt-get install -y cmake nmap ca-certificates neovim cloc unzip
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-
-run cargo --version
-
-
 
 RUN install -m 0755 -d /etc/apt/keyrings
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
@@ -45,17 +41,5 @@ RUN chmod +x /tmp/lvim-install.sh
 RUN LV_BRANCH='release-1.4/neovim-0.9' /tmp/lvim-install.sh --yes
 ENV PATH="/root/.local/bin:${PATH}"
 # after inall in cmd: :TSInstall vimdoc
-
-#install nerd fonts
-
-
-#RUN curl -fLO https://github.com/ryanoasis/nerd-fonts/raw/HEAD/patched-fonts/DroidSansMono/DroidSansMNerdFont-Regular.otf
-#RUN mv  DroidSansMNerdFont-Regular.otf /usr/share/fonts/
-RUN wget https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/0xProto.zip
-RUN unzip 0xProto.zip -d /usr/share/fonts/0xProto
-RUN rm 0xProto.zip
-
-RUN fc-cache -fv
-
 
 ENTRYPOINT ["/bin/bash"]
