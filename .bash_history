@@ -240,7 +240,6 @@ cargo build
 cargo test
 exit
 /bin/python3 /app/client/weather.py
-<<<<<<< HEAD
 whereis
 whereis nvvidia
 whereis nvidia
@@ -296,7 +295,6 @@ docker image prune
 cargo test
 docker rm 7d8cc04c71e10f1a2ca5880884d89dc3b6644f51ab3f3e55269ee07d22b33087
 cargo test
-=======
 printenv > "/tmp/tmp-745T4jdEIBFUNiI.txt"
 printenv > "/tmp/tmp-52327rvltpnZ3Dw9u.txt"
 cd app/database/
@@ -409,5 +407,26 @@ cd app/
 lvim .
 c database/
 lvim database/integration_test.py 
->>>>>>> refs/remotes/origin/master
+exit
+cd app/
+gits
+git config --global --add safe.directory /app
+git branch
+gits
+cd database/mysql_client
+cargo test
+cargo 
+whereis cargo 
+exit
+cargo 
+cd app/database/mysql_client
+cargo test
+git branch
+git config --global --add safe.directory /app
+git diff
+gits
+cd ../..
+cd database/
+pytest
+gits
 exit

@@ -56,10 +56,7 @@ async fn start_mqtt_container(
     let log_mqtt = Arc::new(tokio::sync::Mutex::new(RefCell::new(
         tokio::fs::File::create(log_filepath).await.unwrap(),
     )));
-<<<<<<< HEAD
-=======
 
->>>>>>> refs/remotes/origin/master
     let ready_msg = "mosquitto version 2.0.21 running";
     let img = GenericImage::new("eclipse-mosquitto", "latest")
         .with_wait_for(WaitFor::message_on_stdout(ready_msg))

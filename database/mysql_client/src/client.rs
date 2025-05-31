@@ -43,10 +43,7 @@ impl MqttClient {
             .password("test_app")
             .finalize();
         let stream = cli.get_stream(10);
-<<<<<<< HEAD
 
-=======
->>>>>>> refs/remotes/origin/master
         Self {
             cli: cli,
             conn_opts: conn_opts,
@@ -57,12 +54,8 @@ impl MqttClient {
 
 impl Client<paho_mqtt::Message> for MqttClient {
     async fn connect(&self) {
-<<<<<<< HEAD
-        self.cli.connect(self.conn_opts.clone()).await.unwrap();
-=======
         let result = self.cli.connect(self.conn_opts.clone()).await;
         log::info!("Connect result: {:?}", result);
->>>>>>> refs/remotes/origin/master
     }
 
     async fn send(&self, massage: paho_mqtt::Message) {

@@ -26,15 +26,12 @@ RUN echo \
 RUN apt-get update
 RUN apt-get install -y docker-compose-plugin wget
 
-<<<<<<< HEAD
 RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
-=======
 RUN python3 -m pip install requests paho-mqtt pytest pytest-asyncio mysql-connector-python uniplot testcontainers --break-system-packages
 
 RUN mkdir -p ~/.config/pip/
 RUN echo "[global]" > ~/.config/pip/pip.conf
 RUN echo "break-system-packages = true" >> ~/.config/pip/pip.conf
->>>>>>> refs/remotes/origin/master
 
 RUN mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
 RUN wget https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-repo-ubuntu2204-12-8-local_12.8.1-570.124.06-1_amd64.deb
@@ -47,11 +44,17 @@ ENV PATH="/usr/local/cuda/bin:${PATH}"
 
 
 #RUN LV_BRANCH='release-1.4/neovim-0.9' bash <(curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/release-1.4/neovim-0.9/utils/installer/install.sh)
-RUN curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/release-1.4/neovim-0.9/utils/installer/install.sh > /tmp/lvim-install.sh
-RUN chmod +x /tmp/lvim-install.sh
+#RUN curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/release-1.4/neovim-0.9/utils/installer/install.sh > /tmp/lvim-install.sh
+#RUN chmod +x /tmp/lvim-install.sh
 #RUN cargo add fd-find v10.2.0
-RUN LV_BRANCH='release-1.4/neovim-0.9' /tmp/lvim-install.sh --yes
-ENV PATH="/root/.local/bin:${PATH}"
+#RUN LV_BRANCH='release-1.4/neovim-0.9' /tmp/lvim-install.sh --yes
+#ENV PATH="/root/.local/bin:${PATH}"
 # after inall in cmd: :TSInstall vimdoc
+
+RUN git config --global --add safe.directory /app
+RUN git config --global user.email "rafal9511k@gmail.com"
+RUN git config --global user.name "Rafal"
+
+WORKDIR /app
 
 ENTRYPOINT ["/bin/bash"]
