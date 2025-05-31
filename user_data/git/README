@@ -1,0 +1,5 @@
+Create git_config.sh file with two variables:
+
+#! /bin/bash
+GIT_USER_NAME="Name"
+GIT_USER_EMAIL="name@email.com"

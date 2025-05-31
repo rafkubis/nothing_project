@@ -1,8 +1,8 @@
 *.log
 .bash_history
-
+/user_data/open_wheather/url.txt
+/user_data/git/git_config.sh
 /.vscode-server/*
 /build/*
-/user_data/*
 build*
 *__pycache__*

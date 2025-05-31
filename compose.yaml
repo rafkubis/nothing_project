@@ -23,12 +23,12 @@ services:
     env_file:
       - .env
     volumes:
-      - .:/app/
+      - .:/${WORKDIR}/
+      - /home/${USER}/.ssh:/root/.ssh
       - .vscode-server:/root/.vscode-server
       - ./.bash_history:/root/.bash_history
       - ./.bashrc:/root/.bashrc
       - /var/run/docker.sock:/var/run/docker.sock
-      - /home/${USER}/.ssh:/root/.ssh
     deploy:
       resources:
         reservations:

@@ -22,11 +22,11 @@ class TestCase:
     def setup_method(self, method):
         self.test_name = method.__name__
         print(f"Start {self.test_name}")
-        self.dir_path = f"/app/build/database/mysql_client/integration_test/{self.test_name}/"
+        self.dir_path = f"{os.environ["BUILD_DIR"]}/database/mysql_client/integration_test/{self.test_name}/"
         os.makedirs(self.dir_path, exist_ok=True)
         self.mqtt = "mqtt"
         self.database = "database"
-        self.compose = testcontainers.compose.DockerCompose("/app", "compose.yaml")
+        self.compose = testcontainers.compose.DockerCompose(os.environ["WORKDIR"], "compose.yaml")
         self.compose.services = [self.mqtt, self.database]
         self.compose.wait = True
         try:
@@ -37,7 +37,7 @@ class TestCase:
             assert False, "Error starting compose"
         
         time.sleep(30)
-        self.process = subprocess.Popen(["/app/build/database/mysql_client/debug/mysql_client", self.dir_path])
+        self.process = subprocess.Popen([f"{os.environ["BUILD_DIR"]}/database/mysql_client/debug/mysql_client", self.dir_path])
         time.sleep(2)
     
     def teardown_method(self):
@@ -114,6 +114,6 @@ class TestCase:
 
     def test_driver(self):
         docker_client = docker.from_env()
-        container = docker_client.containers.get("app-mqtt-1")
+        container = docker_client.containers.get("workspace-mqtt-1")
         container.restart()
         time.sleep(5)

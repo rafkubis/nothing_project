@@ -1,0 +1,4 @@
+Here store in url.txt address to open wheather with key
+
+like:
+https://api.openweathermap.org/data/3.0/onecall?lat=20.00&lon=-20.00&appid=KEY

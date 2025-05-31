@@ -1,7 +1,5 @@
 FROM ubuntu
 
-#COPY .env /
-#RUN . .env
 
 RUN apt-get update
 RUN apt-get install -y curl wget
@@ -42,7 +40,6 @@ RUN apt-get -y install cuda-toolkit-12-8
 
 ENV PATH="/usr/local/cuda/bin:${PATH}"
 
-
 #RUN LV_BRANCH='release-1.4/neovim-0.9' bash <(curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/release-1.4/neovim-0.9/utils/installer/install.sh)
 #RUN curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/release-1.4/neovim-0.9/utils/installer/install.sh > /tmp/lvim-install.sh
 #RUN chmod +x /tmp/lvim-install.sh
@@ -51,10 +48,4 @@ ENV PATH="/usr/local/cuda/bin:${PATH}"
 #ENV PATH="/root/.local/bin:${PATH}"
 # after inall in cmd: :TSInstall vimdoc
 
-RUN git config --global --add safe.directory /app
-RUN git config --global user.email "rafal9511k@gmail.com"
-RUN git config --global user.name "Rafal"
-
-WORKDIR /app
-
-ENTRYPOINT ["/bin/bash"]
+#ENTRYPOINT ["/bin/bash"]

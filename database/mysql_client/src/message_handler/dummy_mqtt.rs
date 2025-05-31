@@ -1,7 +1,3 @@
-use std::thread::sleep;
-
-use chrono::Duration;
-
 pub use crate::client;
 use crate::message_handler::MessageHandler;
 
