@@ -12,6 +12,11 @@ services:
     image: mysql
     environment:
       MYSQL_ROOT_PASSWORD: strong_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
     networks:
       - network1
 
