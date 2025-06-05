@@ -41,11 +41,12 @@ impl<T: database::AsyncQuerryDropable + Send + Sync> MessageHandler<paho_mqtt::M
         let result = match msg.topic() {
             "temperature" => self.handle_message_internal_multisensor(msg).await,
             "wheather" => self.handle_message_internal_wheater(msg).await,
+            "sun" => self.handle_message_internal_sun(msg).await,
             _ => Err(String::from("handler for topic not found")),
         };
 
         match result {
-            Ok(_) => {}
+            Ok(()) => {}
             Err(error) => {
                 self.error_tx.send(error).await.unwrap();
             }
@@ -57,7 +58,7 @@ impl<T: database::AsyncQuerryDropable + Send + Sync> MqttMessageHandler<T> {
     async fn handle_message_internal_multisensor(
         &mut self,
         msg: paho_mqtt::Message,
-    ) -> Result<f32, String> {
+    ) -> Result<(), String> {
         let parsed =
             serde_json::from_str::<types::json_multisensor::Root>(msg.payload_str().as_ref());
         match parsed {
@@ -67,11 +68,12 @@ impl<T: database::AsyncQuerryDropable + Send + Sync> MqttMessageHandler<T> {
                 let temperature = Self::calculate_temperature(parsed);
                 let formatted_date_time =
                     chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+                self.shared_data.write().await.temperature = temperature;
                 self.sql
                     .drop_query(temperature, &formatted_date_time)
                     .await
                     .unwrap();
-                Ok(temperature)
+                Ok(())
             }
             Err(..) => {
                 log::error!("Error parsing message: {:?}", msg.payload_str());
@@ -80,17 +82,28 @@ impl<T: database::AsyncQuerryDropable + Send + Sync> MqttMessageHandler<T> {
         }
     }
 
-    async fn handle_message_internal_wheater(
-        &self,
-        msg: paho_mqtt::Message,
-    ) -> Result<f32, String> {
+    async fn handle_message_internal_wheater(&self, msg: paho_mqtt::Message) -> Result<(), String> {
         let parsed = serde_json::from_str::<types::json_wheather::Root>(msg.payload_str().as_ref());
         match parsed {
             Ok(parsed) => {
                 log::info!("Parsed: {:?}", parsed);
-                let mut shared_data = self.shared_data.write().await;
-                shared_data.clouds_forecast = parsed.wheather;
-                Ok(1.2)
+                self.shared_data.write().await.clouds_forecast = parsed.wheather;
+                Ok(())
+            }
+            Err(..) => {
+                log::error!("Error parsing message: {:?}", msg.payload_str());
+                Err(String::from("Parsing error"))
+            }
+        }
+    }
+
+    async fn handle_message_internal_sun(&self, msg: paho_mqtt::Message) -> Result<(), String> {
+        let parsed = serde_json::from_str::<types::json_sun::Root>(msg.payload_str().as_ref());
+        match parsed {
+            Ok(parsed) => {
+                log::info!("Parsed: {:?}", parsed);
+                self.shared_data.write().await.sun = parsed.sun;
+                Ok(())
             }
             Err(..) => {
                 log::error!("Error parsing message: {:?}", msg.payload_str());
@@ -108,17 +121,14 @@ impl<T: database::AsyncQuerryDropable + Send + Sync> MqttMessageHandler<T> {
 
 #[cfg(test)]
 mod test {
-    use crate::database::AsyncQuerryDropbaleWrapper;
-
     use super::*;
+    use crate::database::AsyncQuerryDropbaleWrapper;
 
     #[tokio::test]
     async fn should_push_msg_on_error_channel_when_invalid_message() {
         let querry_dropable_mock = database::MockAsyncQuerryDropable::new();
         let mut error_channel = tokio::sync::mpsc::channel::<String>(3);
-        let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data {
-            clouds_forecast: vec![],
-        }));
+        let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data::new()));
 
         let mut handler =
             MqttMessageHandler::new(querry_dropable_mock, error_channel.0, shared_data);
@@ -140,9 +150,7 @@ mod test {
             tokio::sync::Mutex::new(querry_dropable_mock),
         ));
         let error_channel = tokio::sync::mpsc::channel::<String>(3);
-        let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data {
-            clouds_forecast: vec![],
-        }));
+        let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data::new()));
         let mut handler =
             MqttMessageHandler::new(wrapped_querry_dropable_mock, error_channel.0, shared_data);
 
@@ -155,7 +163,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn should_painc() {
+    async fn should_save_forcast_in_shared_data() {
         let mut querry_dropable_mock = database::MockQuerryDropable::new();
         querry_dropable_mock
             .expect_drop_query()
@@ -164,9 +172,7 @@ mod test {
             tokio::sync::Mutex::new(querry_dropable_mock),
         ));
         let error_channel = tokio::sync::mpsc::channel::<String>(3);
-        let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data {
-            clouds_forecast: vec![],
-        }));
+        let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data::new()));
 
         let mut handler = MqttMessageHandler::new(
             wrapped_querry_dropable_mock,
@@ -193,5 +199,26 @@ mod test {
                     },
                 ]
         );
+    }
+
+    #[tokio::test]
+    async fn should_save_sun_in_shared_data() {
+        let querry_dropable_mock = database::MockQuerryDropable::new();
+        let wrapped_querry_dropable_mock = AsyncQuerryDropbaleWrapper::new(Arc::new(
+            tokio::sync::Mutex::new(querry_dropable_mock),
+        ));
+        let error_channel = tokio::sync::mpsc::channel::<String>(3);
+        let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data::new()));
+        let mut handler = MqttMessageHandler::new(
+            wrapped_querry_dropable_mock,
+            error_channel.0,
+            shared_data.clone(),
+        );
+
+        let json_msg = "{\"sun\": 50}";
+        let msg = paho_mqtt::Message::new("sun", json_msg, paho_mqtt::QOS_0);
+        let client = client::MockClient::<paho_mqtt::Message>::new();
+        handler.handle_message(msg, &client).await;
+        assert_eq!(shared_data.read().await.sun, 50);
     }
 }

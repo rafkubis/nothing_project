@@ -2,9 +2,9 @@ extern crate paho_mqtt as mqtt;
 pub use crate::client;
 use crate::client::Client;
 pub use crate::database;
-pub use crate::message_handler;
 pub use crate::forcast_provider;
 pub use crate::logic;
+pub use crate::message_handler;
 pub use crate::types;
 use std::sync::Arc;
 use tokio;
@@ -22,9 +22,7 @@ macro_rules! spawn {
 
 pub async fn app() {
     log::info!("Starting application");
-    let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data {
-        clouds_forecast: vec![],
-    }));
+    let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data::new()));
     let mqtt_client = create_mqtt_client().await;
     let mut mqtt_client2 = create_mqtt_client().await;
 
@@ -123,20 +121,21 @@ pub async fn create_mqtt_client() -> client::MqttClient {
 
 pub async fn driver_task(shared_data: Arc<tokio::sync::RwLock<types::shared_data::Data>>) {
     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-    loop {
-        let forcast = forcast_provider::ForecastProvider::new(shared_data.clone())
-            .get()
-            .await;
+    let forcast_provider = forcast_provider::ForecastProvider::new(shared_data.clone());
 
+    loop {
+        let forcast = forcast_provider.get().await;
         if forcast.is_none() {
             log::warn!("No forecast data");
             continue;
         } else {
-            let result = logic::should_stop(30.90, 70, forcast.unwrap()).to_string();
+            let data = shared_data.read().await;
+            let result =
+                logic::should_stop(data.temperature, data.sun as i64, forcast.unwrap()).to_string();
             log::info!("Result: {}", result);
+            drop(data);
 
             let msg = paho_mqtt::Message::new("driver", result, paho_mqtt::QOS_2);
-
             let mqtt_client = client::MqttClient::new();
             mqtt_client.connect().await;
             mqtt_client.send(msg).await;

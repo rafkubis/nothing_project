@@ -48,9 +48,9 @@
         "typeinfo": "cpp"
     },
     "rust-analyzer.linkedProjects": [
-        "/app/database/mysql_client/Cargo.toml"
+        "/workspace/database/mysql_client/Cargo.toml"
     ],
-    "rust-analyzer.cargo.targetDir": "/app/build/database/mysql_client/rust_analyzer",
+    "rust-analyzer.cargo.targetDir": "/workspace/build/database/mysql_client/rust_analyzer",
     "python.testing.pytestArgs": [
         "client"
     ],

@@ -21,7 +21,7 @@ def save_logs(logs, service_name, pwd):
 class TestCase:
     def setup_method(self, method):
         self.test_name = method.__name__
-        print(f"Start {self.test_name}")
+        print(f"Setup: {self.test_name}")
         self.dir_path = (
             f"{os.environ["CARGO_TARGET_DIR"]}/integration_test_py/{self.test_name}/"
         )
@@ -40,6 +40,7 @@ class TestCase:
             print("Error starting compose: ", e)
             assert False, "Error starting compose"
 
+        time.sleep(2)
         self.process = subprocess.Popen(
             [f"{os.environ["CARGO_TARGET_DIR"]}/debug/mysql_client", self.dir_path]
         )
@@ -55,8 +56,10 @@ class TestCase:
         self.process.terminate()
         self.process.wait()
         self.compose.stop()
+        time.sleep(2)
 
     def teardown_method(self):
+        print(f"Teardown: {self.test_name}")
         try:
             self.save_container_logs()
         except Exception as e:
