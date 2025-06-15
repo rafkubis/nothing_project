@@ -1,15 +1,13 @@
 #![allow(unused_imports)]
+use crate::{app, client::Client, client::MqttClient, database, logger};
 use ::function_name::named;
 use futures::future::BoxFuture;
+use mysql::{prelude::Queryable, Row};
 use paho_mqtt::client;
 use std::cell::RefCell;
+use std::env;
 use std::sync::Arc;
 use testcontainers::core::logs::consumer::LogConsumer;
-//use testcontainers::core::Mount;
-//use testcontainers::ImageExt;
-use crate::{app, client::Client, client::MqttClient, database, logger};
-use mysql::{prelude::Queryable, Row};
-use std::env;
 use testcontainers::{
     core::{IntoContainerPort, Mount, WaitFor},
     runners::AsyncRunner,

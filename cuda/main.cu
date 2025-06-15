@@ -65,11 +65,6 @@ int main(){
     //vector_add(out, a, b, N);
 
     vector_add_cuda<<<2,25>>>(out_gpu, a_gpu, b_gpu, N);
-<<<<<<< HEAD
-=======
-    
->>>>>>> refs/remotes/origin/master
-
     
    res = cudaMemcpy(out, out_gpu, sizeof(float) * N * 1, cudaMemcpyKind::cudaMemcpyDeviceToHost);
    std::cout << "Cuda cudaMemcpy " << res << ", out_gpu: "  << out_gpu << std::endl;

@@ -21,9 +21,11 @@ def save_logs(logs, service_name, pwd):
 class TestCase:
     def setup_method(self, method):
         self.test_name = method.__name__
-        print(f"Setup: {self.test_name}")
+        self.file_name = os.path.basename(__file__)
+        print(f"Setup: {self.file_name}::{self.test_name}")
+        
         self.dir_path = (
-            f"{os.environ["CARGO_TARGET_DIR"]}/integration_test_py/{self.test_name}/"
+            f"{os.environ["CARGO_TARGET_DIR"]}/{self.file_name}/{self.test_name}/"
         )
         os.makedirs(self.dir_path, exist_ok=True)
         self.mqtt = "mqtt"
@@ -32,19 +34,20 @@ class TestCase:
             os.environ["WORKDIR"], "compose.yaml"
         )
         self.compose.services = [self.mqtt, self.database]
-        self.compose.wait = True
+        #self.compose.wait = True
         try:
             self.compose.start()
 
         except Exception as e:
             print("Error starting compose: ", e)
+            self.cleanup()
             assert False, "Error starting compose"
 
-        time.sleep(2)
+        time.sleep(20)
         self.process = subprocess.Popen(
             [f"{os.environ["CARGO_TARGET_DIR"]}/debug/mysql_client", self.dir_path]
         )
-        time.sleep(2)
+        time.sleep(5)
 
     def save_container_logs(self):
         mqtt_logs = self.compose.get_logs(self.mqtt)
@@ -59,7 +62,7 @@ class TestCase:
         time.sleep(2)
 
     def teardown_method(self):
-        print(f"Teardown: {self.test_name}")
+        print(f"Teardown: {self.file_name}::{self.test_name}")
         try:
             self.save_container_logs()
         except Exception as e:

@@ -82,7 +82,7 @@ impl<T: database::AsyncQuerryDropable + Send + Sync> MqttMessageHandler<T> {
         }
     }
 
-    async fn handle_message_internal_wheater(&self, msg: paho_mqtt::Message) -> Result<(), String> {
+    async fn handle_mssage_internal_wheater(&self, msg: paho_mqtt::Message) -> Result<(), String> {
         let parsed = serde_json::from_str::<types::json_wheather::Root>(msg.payload_str().as_ref());
         match parsed {
             Ok(parsed) => {

@@ -8,6 +8,7 @@ RUN apt-get install -y traceroute python3 python3-pip git
 RUN apt-get install -y iproute2 telnet strace docker.io docker-compose
 RUN apt-get install -y mysql-client-core-8.0 vim build-essential pkg-config libssl-dev
 RUN apt-get install -y cmake nmap ca-certificates neovim cloc unzip
+RUN apt-get install -y protobuf-compiler
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -22,15 +23,14 @@ RUN echo \
   tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 RUN apt-get update
-RUN apt-get install -y docker-compose-plugin wget
-
-RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
-RUN python3 -m pip install requests paho-mqtt pytest pytest-asyncio mysql-connector-python uniplot testcontainers --break-system-packages
+RUN apt-get install -y docker-compose-plugin
 
 RUN mkdir -p ~/.config/pip/
 RUN echo "[global]" > ~/.config/pip/pip.conf
 RUN echo "break-system-packages = true" >> ~/.config/pip/pip.conf
+RUN python3 -m pip install requests paho-mqtt pytest pytest-asyncio mysql-connector-python uniplot testcontainers
 
+RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
 RUN mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
 RUN wget https://developer.download.nvidia.com/compute/cuda/12.8.1/local_installers/cuda-repo-ubuntu2204-12-8-local_12.8.1-570.124.06-1_amd64.deb
 RUN dpkg -i cuda-repo-ubuntu2204-12-8-local_12.8.1-570.124.06-1_amd64.deb
@@ -39,13 +39,3 @@ RUN apt-get update
 RUN apt-get -y install cuda-toolkit-12-8
 
 ENV PATH="/usr/local/cuda/bin:${PATH}"
-
-#RUN LV_BRANCH='release-1.4/neovim-0.9' bash <(curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/release-1.4/neovim-0.9/utils/installer/install.sh)
-#RUN curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/release-1.4/neovim-0.9/utils/installer/install.sh > /tmp/lvim-install.sh
-#RUN chmod +x /tmp/lvim-install.sh
-#RUN cargo add fd-find v10.2.0
-#RUN LV_BRANCH='release-1.4/neovim-0.9' /tmp/lvim-install.sh --yes
-#ENV PATH="/root/.local/bin:${PATH}"
-# after inall in cmd: :TSInstall vimdoc
-
-#ENTRYPOINT ["/bin/bash"]

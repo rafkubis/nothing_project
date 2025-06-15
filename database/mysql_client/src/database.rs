@@ -40,6 +40,7 @@ impl MySqlQuerryDropbale {
     pub fn new() -> Self {
         let mut conn = Self::open_sql_connection();
         Self::create_table_if_not_exist(&mut conn);
+        log::info!("MySqlQuerryDropbale created");
         MySqlQuerryDropbale { conn }
     }
 

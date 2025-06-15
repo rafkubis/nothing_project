@@ -15,16 +15,15 @@ macro_rules! spawn {
     };
     ($e:expr, $($y:expr), *) => {
 
-            spawn!($e);
-            spawn!($($y),+);
+        spawn!($e);
+        spawn!($($y),+);
     }
 }
 
 pub async fn app() {
     log::info!("Starting application");
     let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data::new()));
-    let mqtt_client = create_mqtt_client().await;
-    let mut mqtt_client2 = create_mqtt_client().await;
+    let (mqtt_client, mut mqtt_client2) = create_mqtt_clients().await;
 
     let (error_channel_tx, error_channel_rx) = tokio::sync::mpsc::channel::<String>(3);
 
@@ -62,11 +61,10 @@ pub async fn create_mqtt_clients() -> (client::MqttClient, client::MqttClient) {
     mqtt_client.connect().await;
     mqtt_client2.connect().await;
 
-    //mqtt_client.subscribe("temperature").await;
-
     let subscribed = async move {
         mqtt_client.subscribe("temperature").await;
         mqtt_client.subscribe("wheather").await;
+        mqtt_client.subscribe("sun").await;
         mqtt_client
     };
 
@@ -111,11 +109,9 @@ pub async fn handle_errors(mut rx: tokio::sync::mpsc::Receiver<String>) {
     log::warn!("channel is closed");
 }
 
-pub async fn create_mqtt_client() -> client::MqttClient {
+pub async fn create_mqtt_client_without_subscriptions() -> client::MqttClient {
     let mqtt_client = client::MqttClient::new();
     mqtt_client.connect().await;
-    mqtt_client.subscribe("temperature").await;
-    mqtt_client.subscribe("wheather").await;
     mqtt_client
 }
 
@@ -136,8 +132,7 @@ pub async fn driver_task(shared_data: Arc<tokio::sync::RwLock<types::shared_data
             drop(data);
 
             let msg = paho_mqtt::Message::new("driver", result, paho_mqtt::QOS_2);
-            let mqtt_client = client::MqttClient::new();
-            mqtt_client.connect().await;
+            let mqtt_client = create_mqtt_client_without_subscriptions().await;
             mqtt_client.send(msg).await;
         }
         tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
