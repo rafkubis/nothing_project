@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package hello;
+
+service Hellower{
+    rpc say_hallo(request) returns(response) {}
+}
+
+message request {
+    string greet = 1;
+}
+
+message response {
+    int32 greetings = 1;
+    repeated int32 cnt = 2;
+}
+

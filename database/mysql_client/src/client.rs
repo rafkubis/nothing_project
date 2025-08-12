@@ -1,14 +1,23 @@
 pub use crate::message_handler;
-use async_trait::async_trait;
 use futures::stream::StreamExt;
-use mockall::*;
 use std::time::Duration;
 
-#[async_trait]
-#[automock]
 pub trait Client<Msg: 'static> {
     fn connect(&self) -> impl std::future::Future<Output = ()>;
+    //   fn send(&self, msg: Msg) -> impl std::future::Future<Output = ()> + Send + Sync;
+    /*   fn receive<T: message_handler::MessageHandler<Msg> + Send + Sync + 'static>(
+        &mut self,
+        handler: T,
+    ) -> impl std::future::Future<Output = ()> + Send + Sync;*/
+    fn get_sender(&self) -> impl Sender<Msg> + Send + Sync + 'static;
+    fn get_receiver(&self) -> impl Receiver<Msg> + Send + Sync + 'static;
+}
+
+pub trait Sender<Msg: 'static> {
     fn send(&self, msg: Msg) -> impl std::future::Future<Output = ()> + Send + Sync;
+}
+
+pub trait Receiver<Msg: 'static> {
     fn receive<T: message_handler::MessageHandler<Msg> + Send + Sync + 'static>(
         &mut self,
         handler: T,
@@ -30,8 +39,55 @@ impl MqttClient {
     }
 }
 
-//unsafe impl Send for MqttClient {}
-//unsafe impl Sync for MqttClient {}
+pub struct MqttSender {
+    cli: paho_mqtt::AsyncClient,
+}
+
+pub struct MqttReceiver {
+    stream: paho_mqtt::AsyncReceiver<Option<paho_mqtt::Message>>,
+}
+
+impl MqttSender {
+    pub fn new(cli: paho_mqtt::AsyncClient) -> Self {
+        Self { cli }
+    }
+}
+
+impl MqttReceiver {
+    pub fn new(stream: paho_mqtt::AsyncReceiver<Option<paho_mqtt::Message>>) -> Self {
+        Self { stream }
+    }
+}
+
+impl Sender<paho_mqtt::Message> for MqttSender {
+    async fn send(&self, msg: paho_mqtt::Message) {
+        log::debug!("Sending message {}", msg);
+        if let Err(err) = self.cli.publish(msg).await {
+            log::error!("{}", err);
+        }
+    }
+}
+
+impl Receiver<paho_mqtt::Message> for MqttReceiver {
+    async fn receive<
+        T: message_handler::MessageHandler<paho_mqtt::Message> + Send + Sync + 'static,
+    >(
+        &mut self,
+        mut handler: T,
+    ) {
+        while let Some(msg) = self.stream.next().await {
+            log::debug!("Received message: {:?}", msg);
+            match msg {
+                Some(msg1) => {
+                    handler.handle_message(msg1).await;
+                }
+                None => {
+                    log::warn!("No message received");
+                }
+            };
+        }
+    }
+}
 
 impl MqttClient {
     pub fn new() -> Self {
@@ -58,14 +114,7 @@ impl Client<paho_mqtt::Message> for MqttClient {
         log::info!("Connect result: {:?}", result);
     }
 
-    async fn send(&self, massage: paho_mqtt::Message) {
-        log::debug!("Sending message {}", massage);
-        if let Err(err) = self.cli.publish(massage).await {
-            log::error!("{}", err);
-        }
-    }
-
-    async fn receive<T: message_handler::MessageHandler<paho_mqtt::Message> + Send + Sync>(
+    /*async fn receive<T: message_handler::MessageHandler<paho_mqtt::Message> + Send + Sync>(
         &mut self,
         mut handler: T,
     ) {
@@ -73,7 +122,7 @@ impl Client<paho_mqtt::Message> for MqttClient {
             log::debug!("Received message: {:?}", msg);
             match msg {
                 Some(msg1) => {
-                    handler.handle_message(msg1, self).await;
+                    handler.handle_message(msg1).await;
                 }
                 None => {
                     log::warn!("No message received");
@@ -81,5 +130,13 @@ impl Client<paho_mqtt::Message> for MqttClient {
                 }
             };
         }
+    }*/
+
+    fn get_sender(&self) -> impl Sender<paho_mqtt::Message> + Send + Sync + 'static {
+        MqttSender::new(self.cli.clone())
+    }
+
+    fn get_receiver(&self) -> impl Receiver<paho_mqtt::Message> + Send + Sync + 'static {
+        MqttReceiver::new(self.stream.clone())
     }
 }

@@ -31,16 +31,12 @@ impl<T: database::AsyncQuerryDropable + Send + Sync> MqttMessageHandler<T> {
 impl<T: database::AsyncQuerryDropable + Send + Sync> MessageHandler<paho_mqtt::Message>
     for MqttMessageHandler<T>
 {
-    async fn handle_message(
-        &mut self,
-        msg: paho_mqtt::Message,
-        _client: &(impl client::Client<paho_mqtt::Message> + Send + Sync),
-    ) {
+    async fn handle_message(&mut self, msg: paho_mqtt::Message) {
         log::info!("Received message: {:?}", msg);
 
         let result = match msg.topic() {
             "temperature" => self.handle_message_internal_multisensor(msg).await,
-            "wheather" => self.handle_message_internal_wheater(msg).await,
+            "wheather" => self.handle_mssage_internal_wheater(msg).await,
             "sun" => self.handle_message_internal_sun(msg).await,
             _ => Err(String::from("handler for topic not found")),
         };
@@ -134,9 +130,7 @@ mod test {
             MqttMessageHandler::new(querry_dropable_mock, error_channel.0, shared_data);
         let msg = paho_mqtt::Message::new("temperature", vec![], paho_mqtt::QOS_0);
 
-        let client = client::MockClient::<paho_mqtt::Message>::new();
-
-        handler.handle_message(msg, &client).await;
+        handler.handle_message(msg).await;
         assert_eq!(error_channel.1.recv().await.unwrap(), "Parsing error");
     }
 
@@ -157,9 +151,7 @@ mod test {
         let json_msg = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
         let msg = paho_mqtt::Message::new("temperature", json_msg, paho_mqtt::QOS_0);
 
-        let client = client::MockClient::<paho_mqtt::Message>::new();
-
-        handler.handle_message(msg, &client).await;
+        handler.handle_message(msg).await;
     }
 
     #[tokio::test]
@@ -182,9 +174,8 @@ mod test {
 
         let json_msg = "{\"wheather\": [{\"dt\": 1744452000, \"cloud\": 96}, {\"dt\": 1744455600, \"cloud\": 96}]}";
         let msg = paho_mqtt::Message::new("wheather", json_msg, paho_mqtt::QOS_0);
-        let client = client::MockClient::<paho_mqtt::Message>::new();
 
-        handler.handle_message(msg, &client).await;
+        handler.handle_message(msg).await;
 
         assert!(
             shared_data.read().await.clouds_forecast
@@ -217,8 +208,7 @@ mod test {
 
         let json_msg = "{\"sun\": 50}";
         let msg = paho_mqtt::Message::new("sun", json_msg, paho_mqtt::QOS_0);
-        let client = client::MockClient::<paho_mqtt::Message>::new();
-        handler.handle_message(msg, &client).await;
+        handler.handle_message(msg).await;
         assert_eq!(shared_data.read().await.sun, 50);
     }
 }

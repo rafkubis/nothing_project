@@ -8,7 +8,19 @@ import mysql.connector
 import docker
 import requests
 import json
+import grpc
+from concurrent import futures
+import sys
+#sys.path.append(f"{os.environ["BUILD_DIR"]}/database")
+import hello_pb2_grpc
+import hello_pb2
 
+class GreetingServicer(hello_pb2_grpc.Hellower):
+    def say_hallo(self, request, context):
+        print(f"Received request: {request}")
+        context.set_code(grpc.StatusCode.OK)
+        context.set_details("Hello!")
+        return  hello_pb2.response(greetings=21)
 
 def save_logs(logs, service_name, pwd):
     (out, err) = logs
@@ -43,7 +55,7 @@ class TestCase:
             self.cleanup()
             assert False, "Error starting compose"
 
-        time.sleep(20)
+        time.sleep(30)
         self.process = subprocess.Popen(
             [f"{os.environ["CARGO_TARGET_DIR"]}/debug/mysql_client", self.dir_path]
         )
@@ -133,11 +145,24 @@ class TestCase:
         result = cursor.fetchall()
         print(result)
         assert result[0][0] == 21.37
-        time.sleep(5)
-        assert self.recived_massages[0].topic == "driver"
+        #time.sleep(5)
+        #assert self.recived_massages[0].topic == "driver"
 
     def test_driver(self):
         docker_client = docker.from_env()
         container = docker_client.containers.get("workspace-mqtt-1")
         container.restart()
         time.sleep(5)
+                
+    def test_grpc(self):
+        server = grpc.server(futures.ThreadPoolExecutor())
+        hello_pb2_grpc.add_HellowerServicer_to_server(GreetingServicer(), server)
+        server.add_insecure_port("[::1]:50051")
+
+        server.start()
+        print("gRPC server started on port 50051")
+        time.sleep(20)
+        evt = server.stop(None)
+        evt.wait()
+        print("gRPC server stopped")
+

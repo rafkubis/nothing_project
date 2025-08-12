@@ -4,5 +4,4 @@
 /user_data/git/git_config.sh
 /.vscode-server/*
 /build/*
-build*
 *__pycache__*

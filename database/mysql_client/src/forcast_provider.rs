@@ -17,7 +17,8 @@ impl ForecastProvider {
         let chrono_now = helper::cut_to_hours(chrono::Utc::now().naive_utc())
             .and_utc()
             .timestamp() as u32;
-        let forecaset = &self.shared_data.read().await.clouds_forecast;
+        let forecaset: &Vec<types::json_wheather::DtClouds> =
+            &self.shared_data.read().await.clouds_forecast;
 
         helper::get_forecast(forecaset, chrono_now, 3)
     }

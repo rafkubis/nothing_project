@@ -1,5 +1,5 @@
 #![allow(unused_imports)]
-use crate::{app, client::Client, client::MqttClient, database, logger};
+use crate::{app, client::Client, client::MqttClient, client::Sender, database, logger};
 use ::function_name::named;
 use futures::future::BoxFuture;
 use mysql::{prelude::Queryable, Row};
@@ -130,9 +130,9 @@ async fn test_mqtt() {
         let payload = "{\"multiSensor\": {\"sensors\": [{\"type\": \"temperature\", \"id\": 0, \"value\": 2137, \"trend\": 2, \"state\": 2, \"elapsedTimeS\": -1}]}}";
         let message = paho_mqtt::Message::new("temperature", payload, paho_mqtt::QOS_0);
 
-        client.send(message.clone()).await;
-        client.send(message.clone()).await;
-        client.send(message).await;
+        client.get_sender().send(message.clone()).await;
+        client.get_sender().send(message.clone()).await;
+        client.get_sender().send(message).await;
 
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 

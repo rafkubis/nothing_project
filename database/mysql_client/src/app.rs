@@ -1,6 +1,7 @@
 extern crate paho_mqtt as mqtt;
 pub use crate::client;
-use crate::client::Client;
+use crate::client::Receiver;
+use crate::client::*;
 pub use crate::database;
 pub use crate::forcast_provider;
 pub use crate::logic;
@@ -8,6 +9,9 @@ pub use crate::message_handler;
 pub use crate::types;
 use std::sync::Arc;
 use tokio;
+use tonic;
+
+tonic::include_proto!("hello");
 
 macro_rules! spawn {
     ($x:expr) => {
@@ -23,14 +27,15 @@ macro_rules! spawn {
 pub async fn app() {
     log::info!("Starting application");
     let shared_data = Arc::new(tokio::sync::RwLock::new(types::shared_data::Data::new()));
-    let (mqtt_client, mut mqtt_client2) = create_mqtt_clients().await;
+    let (mqtt_client, mqtt_client2) = create_mqtt_clients().await;
 
     let (error_channel_tx, error_channel_rx) = tokio::sync::mpsc::channel::<String>(3);
 
     let task2 = async move {
         log::info!("Start MQTT Receiver Task 2");
         let message_handler = message_handler::dummy_mqtt::DummyMqttHandler {};
-        mqtt_client2.receive(message_handler).await;
+        let mut receiver = mqtt_client2.get_receiver();
+        receiver.receive(message_handler).await;
     };
 
     spawn!(tick(2), tick(1), tick(3));
@@ -43,12 +48,14 @@ pub async fn app() {
         shared_data.clone(),
     ));
     let handle_erros_handle = tokio::spawn(handle_errors(error_channel_rx));
+    let tonic_task_handle = tokio::spawn(tonic_task());
 
     _ = tokio::join!(
         mqtt_reciver_handle,
         handle_erros_handle,
         task2_handle,
-        driver_task_handle
+        driver_task_handle,
+        tonic_task_handle
     );
 }
 
@@ -78,7 +85,7 @@ pub async fn create_mqtt_clients() -> (client::MqttClient, client::MqttClient) {
 }
 
 pub async fn mqtt_recevier(
-    mut mqtt_client: client::MqttClient,
+    mqtt_client: client::MqttClient,
     error_channel_tx: tokio::sync::mpsc::Sender<String>,
     shared_data: Arc<tokio::sync::RwLock<types::shared_data::Data>>,
 ) {
@@ -92,7 +99,8 @@ pub async fn mqtt_recevier(
     let async_conn = database::AsyncQuerryDropbaleWrapper::new(conn);
     let message_handler =
         message_handler::mqtt::MqttMessageHandler::new(async_conn, error_channel_tx, shared_data);
-    mqtt_client.receive(message_handler).await;
+    let mut receiver = mqtt_client.get_receiver();
+    receiver.receive(message_handler).await;
 }
 
 pub async fn tick(seconds: u64) {
@@ -123,7 +131,6 @@ pub async fn driver_task(shared_data: Arc<tokio::sync::RwLock<types::shared_data
         let forcast = forcast_provider.get().await;
         if forcast.is_none() {
             log::warn!("No forecast data");
-            continue;
         } else {
             let data = shared_data.read().await;
             let result =
@@ -133,8 +140,38 @@ pub async fn driver_task(shared_data: Arc<tokio::sync::RwLock<types::shared_data
 
             let msg = paho_mqtt::Message::new("driver", result, paho_mqtt::QOS_2);
             let mqtt_client = create_mqtt_client_without_subscriptions().await;
-            mqtt_client.send(msg).await;
+            mqtt_client.get_sender().send(msg).await;
         }
         tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
     }
+}
+
+pub async fn tonic_task() {
+    log::info!("Starting Tonic");
+    let mut channel = tonic::transport::Channel::from_static("http://[::1]:50051")
+        .connect()
+        .await;
+
+    while channel.is_err() {
+        log::warn!("Tonic channel not ready, retrying...");
+        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        channel = tonic::transport::Channel::from_static("http://[::1]:50051")
+            .connect()
+            .await;
+    }
+
+    let mut cli = hellower_client::HellowerClient::new(channel.unwrap());
+
+    let mut req = Request::default();
+    req.greet.clone_from(&String::from("source"));
+    log::info!("Tonic request: {:?}", req);
+
+    match cli.say_hallo(req).await {
+        Ok(resp) => {
+            log::info!("Tonic response: {:?}", resp);
+        }
+        Err(e) => {
+            log::error!("Tonic error: {:?}", e);
+        }
+    };
 }
